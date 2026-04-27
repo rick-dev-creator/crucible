@@ -1,0 +1,50 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET 10
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Restore
+        run: dotnet restore Crucible.sln
+
+      - name: Build
+        run: dotnet build Crucible.sln -c Release --no-restore
+
+      - name: Test (with coverage)
+        run: dotnet test Crucible.sln -c Release --no-build --collect:"XPlat Code Coverage" --results-directory TestResults
+
+      - name: Upload coverage artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: coverage
+          path: TestResults/**/coverage.cobertura.xml
+
+  pack:
+    needs: build-test
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v')
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+      - name: Pack
+        run: dotnet pack Crucible.sln -c Release -o artifacts
+      - uses: actions/upload-artifact@v3
+        with:
+          name: nupkgs
+          path: artifacts/*.nupkg
