@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <IsPackable>false</IsPackable>
+    <RootNamespace>Crucible.Sample.Orders</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Crucible.Domain\Crucible.Domain.csproj" />
+    <ProjectReference Include="..\..\src\Crucible.Chains\Crucible.Chains.csproj" />
+    <ProjectReference Include="..\..\src\Crucible.Generators\Crucible.Generators.csproj"
+                      OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+  </ItemGroup>
+</Project>
