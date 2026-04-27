@@ -549,9 +549,11 @@ This is built on close to **two decades of C# work** and a long list of enterpri
 
 ### The LLM amplifier
 
-I have used LLMs for code almost daily for over a year — partly to learn, partly to **test the productivity claims** executives keep repeating. The honest answer is mixed. LLMs do produce. They help. With strong foundations and concrete knowledge of what you're building, they make a senior measurably more productive.
+I have used LLMs for code almost daily for over a year — partly to learn, partly to **test the productivity claims** executives keep repeating. The honest answer is mixed.
 
-Without those foundations, the picture flips. **LLMs amplify the developer using them, in both directions.** A senior who knows what to ask for and reviews carefully gets faster and more consistent output. A junior who treats LLM output as authoritative ships subtly broken code at five times the speed.
+LLMs do produce. They help. But the framing of "10x productivity" the marketing slides love **doesn't survive contact with a real codebase**. Even with a senior driving carefully, the typical iteration is **two or three steps forward and one or two back**: the LLM advances the work, then introduces a regression, a misunderstood requirement, or an unrequested refactor that has to be undone. Net progress stays positive when the senior catches the backtracking on every turn. It goes negative the moment they don't.
+
+That asymmetry is the whole story. **LLMs amplify the developer using them, in both directions.** A senior who knows what to ask for and reviews carefully gets the net-forward iteration above. A junior who treats LLM output as authoritative ships subtly broken code at five times the speed and never sees the backtracking they should have done.
 
 In practice on enterprise codebases, the negative amplification has been **more visible than the positive**. LLMs reliably:
 
