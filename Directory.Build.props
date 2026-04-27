@@ -1,0 +1,24 @@
+<Project>
+  <PropertyGroup>
+    <LangVersion>preview</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    <AnalysisLevel>latest</AnalysisLevel>
+    <NeutralLanguage>en-US</NeutralLanguage>
+    <Authors>rick-dev</Authors>
+    <Company>rick-lab</Company>
+    <Copyright>Copyright (c) 2026 rick-dev</Copyright>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageProjectUrl>https://git.rick-lab.dev/rick-dev/crucible</PackageProjectUrl>
+    <RepositoryUrl>https://git.rick-lab.dev/rick-dev/crucible</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(IsPackable)' == 'true'">
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+  </PropertyGroup>
+</Project>
