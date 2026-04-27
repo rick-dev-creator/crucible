@@ -59,6 +59,16 @@ public sealed class CrucibleGeneratorSnapshotTests
     }
 
     [Fact]
+    public void EmitsCRC006_WhenAggregateNotDerivedFromAggregateRoot()
+    {
+        var src = OrderAggregateInput.Source.Replace(
+            "public partial class Order : AggregateRoot<OrderId>",
+            "public partial class Order");
+        var driver = RunGenerator(src);
+        driver.GetRunResult().Diagnostics.Should().Contain(d => d.Id == "CRC006");
+    }
+
+    [Fact]
     public void EmitsCRC005_WhenAggregateNotPartial()
     {
         var src = OrderAggregateInput.Source.Replace(

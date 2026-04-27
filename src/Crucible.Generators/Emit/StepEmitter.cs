@@ -45,15 +45,15 @@ internal static class StepEmitter
                     cb.Line($"var aggregate = ctx.Aggregate ?? throw new global::System.InvalidOperationException(\"Aggregate is null\");");
 
                     // Pre processors
-                    foreach (var preFqn in step.PreProcessorTypes)
+                    for (int preIdx = 0; preIdx < step.PreProcessorTypes.Count; preIdx++)
                     {
-                        cb.Line($"var pre_{System.Math.Abs(preFqn.GetHashCode())} = (global::Crucible.Chains.Processors.IPreProcessor<global::{aggFqn}, {m.IdTypeName}, {inputType}>?)ctx.Services.GetService(typeof(global::Crucible.Chains.Processors.IPreProcessor<global::{aggFqn}, {m.IdTypeName}, {inputType}>));");
-                        cb.Line($"if (pre_{System.Math.Abs(preFqn.GetHashCode())} is not null)");
+                        cb.Line($"var pre_{preIdx} = (global::Crucible.Chains.Processors.IPreProcessor<global::{aggFqn}, {m.IdTypeName}, {inputType}>?)ctx.Services.GetService(typeof(global::Crucible.Chains.Processors.IPreProcessor<global::{aggFqn}, {m.IdTypeName}, {inputType}>));");
+                        cb.Line($"if (pre_{preIdx} is not null)");
                         using (cb.Block())
                         {
-                            cb.Line($"var preCtx = new global::Crucible.Chains.Processors.PreContext<global::{aggFqn}, {m.IdTypeName}, {inputType}>(aggregate, {inputArg}, ctx.Services);");
-                            cb.Line($"var preResult = await pre_{System.Math.Abs(preFqn.GetHashCode())}.InvokeAsync(preCtx, ct).ConfigureAwait(false);");
-                            cb.Line($"if (preResult.IsFailure) return global::Crucible.Chains.Steps.StepOutcome.Failure(preResult.Errors);");
+                            cb.Line($"var preCtx_{preIdx} = new global::Crucible.Chains.Processors.PreContext<global::{aggFqn}, {m.IdTypeName}, {inputType}>(aggregate, {inputArg}, ctx.Services);");
+                            cb.Line($"var preResult_{preIdx} = await pre_{preIdx}.InvokeAsync(preCtx_{preIdx}, ct).ConfigureAwait(false);");
+                            cb.Line($"if (preResult_{preIdx}.IsFailure) return global::Crucible.Chains.Steps.StepOutcome.Failure(preResult_{preIdx}.Errors);");
                         }
                     }
 
@@ -71,16 +71,16 @@ internal static class StepEmitter
                     }
 
                     // Post processors
-                    foreach (var postFqn in step.PostProcessorTypes)
+                    for (int postIdx = 0; postIdx < step.PostProcessorTypes.Count; postIdx++)
                     {
                         var stateForPost = step.ReturnsResultWithoutValue ? "global::Crucible.Chains.Steps.Unit" : step.OutputTypeName!;
                         var outputArg = step.ReturnsResultWithoutValue ? "global::Crucible.Chains.Steps.Unit.Value" : "domainResult.Value";
-                        cb.Line($"var post_{System.Math.Abs(postFqn.GetHashCode())} = (global::Crucible.Chains.Processors.IPostProcessor<global::{aggFqn}, {m.IdTypeName}, {stateForPost}>?)ctx.Services.GetService(typeof(global::Crucible.Chains.Processors.IPostProcessor<global::{aggFqn}, {m.IdTypeName}, {stateForPost}>));");
-                        cb.Line($"if (post_{System.Math.Abs(postFqn.GetHashCode())} is not null)");
+                        cb.Line($"var post_{postIdx} = (global::Crucible.Chains.Processors.IPostProcessor<global::{aggFqn}, {m.IdTypeName}, {stateForPost}>?)ctx.Services.GetService(typeof(global::Crucible.Chains.Processors.IPostProcessor<global::{aggFqn}, {m.IdTypeName}, {stateForPost}>));");
+                        cb.Line($"if (post_{postIdx} is not null)");
                         using (cb.Block())
                         {
-                            cb.Line($"var postCtx = new global::Crucible.Chains.Processors.PostContext<global::{aggFqn}, {m.IdTypeName}, {stateForPost}>(aggregate, {outputArg}, ctx.Services);");
-                            cb.Line($"await post_{System.Math.Abs(postFqn.GetHashCode())}.InvokeAsync(postCtx, ct).ConfigureAwait(false);");
+                            cb.Line($"var postCtx_{postIdx} = new global::Crucible.Chains.Processors.PostContext<global::{aggFqn}, {m.IdTypeName}, {stateForPost}>(aggregate, {outputArg}, ctx.Services);");
+                            cb.Line($"await post_{postIdx}.InvokeAsync(postCtx_{postIdx}, ct).ConfigureAwait(false);");
                         }
                     }
 

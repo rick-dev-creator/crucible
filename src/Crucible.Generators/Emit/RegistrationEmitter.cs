@@ -25,7 +25,8 @@ internal static class RegistrationEmitter
 
                     if (step.HandlerTypeName is { } handler)
                     {
-                        cb.Line($"global::Microsoft.Extensions.DependencyInjection.ServiceCollectionServiceExtensions.AddScoped(services, typeof(global::Crucible.Chains.Handlers.IStepHandler<global::{aggFqn}, {m.IdTypeName}, {inputType}, {stateType}>), typeof(global::{handler}));");
+                        // TryAddScoped: idempotent — calling AddXxxAggregate() twice or after a manual override is safe.
+                        cb.Line($"global::Microsoft.Extensions.DependencyInjection.Extensions.ServiceCollectionDescriptorExtensions.TryAddScoped(services, typeof(global::Crucible.Chains.Handlers.IStepHandler<global::{aggFqn}, {m.IdTypeName}, {inputType}, {stateType}>), typeof(global::{handler}));");
                     }
                     foreach (var preFqn in step.PreProcessorTypes)
                     {
