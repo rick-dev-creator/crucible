@@ -16,3 +16,8 @@ CRC008 | Crucible | Error | Step method is async or returns Task
 CRC010 | Crucible | Error | Ambiguous handler
 CRC100 | Crucible | Info | Step has no handler — runs as domain-only
 CRC200 | Crucible | Warning | [Pre<T>] / [Post<T>] target does not implement the expected interface
+CRC300 | Crucible | Error | Entity is not partial
+CRC301 | Crucible | Error | Entity must derive from Entity<TId>
+CRC302 | Crucible | Error | Entity must have a parameterless constructor
+CRC303 | Crucible | Error | No backing field found for entity collection
+CRC304 | Crucible | Error | Multiple candidate backing fields for entity collection

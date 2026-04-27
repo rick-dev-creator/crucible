@@ -16,6 +16,9 @@ public partial class Order : AggregateRoot<OrderId>
     public OrderStatus Status { get; private set; } = OrderStatus.Draft;
     public string? Carrier { get; private set; }
 
+    private readonly List<OrderItem> _items = new();
+    public IReadOnlyList<OrderItem> Items => _items;
+
     [Step(Order = 1, Entry = true)]
     [Pre<ValidateCustomerPreProcessor>]
     public Result<OrderCreated> Create(OrderDto dto)

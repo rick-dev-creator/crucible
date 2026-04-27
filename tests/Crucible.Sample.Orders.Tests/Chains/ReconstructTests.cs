@@ -47,6 +47,7 @@ public sealed class ReconstructTests
         public OrderStatus Status { get; set; }
         public string? Carrier { get; set; }
         public long Version { get; set; }
+        public IReadOnlyList<IOrderItemSnapshot> Items { get; set; } = System.Array.Empty<IOrderItemSnapshot>();
     }
 
     [Fact]

@@ -126,6 +126,33 @@ public sealed class CrucibleGeneratorSnapshotTests
         driver.GetRunResult().Diagnostics.Should().Contain(d => d.Id == "CRC200");
     }
 
+    [Fact]
+    public System.Threading.Tasks.Task EmitsEntitySnapshot_AndAggregateReferencesIt()
+    {
+        var src = OrderAggregateInput.Source.Replace(
+            "public sealed record OrderDto(string CustomerId);",
+            @"public sealed record OrderDto(string CustomerId);
+
+public readonly record struct OrderItemId(System.Guid Value);
+
+[Crucible.Domain.Attributes.Entity]
+public partial class OrderItem : Crucible.Domain.Aggregates.Entity<OrderItemId>
+{
+    public string Sku { get; private set; } = """";
+    public OrderItem() { }
+}").Replace(
+            "[Aggregate]\npublic partial class Order : AggregateRoot<OrderId>\n{",
+            @"[Aggregate]
+public partial class Order : AggregateRoot<OrderId>
+{
+    private readonly System.Collections.Generic.List<OrderItem> _items = new();
+    public System.Collections.Generic.IReadOnlyList<OrderItem> Items => _items;
+");
+
+        var driver = RunGenerator(src);
+        return Verifier.Verify(driver).UseDirectory("Snapshots").UseMethodName("EmitsEntitySnapshot_AndAggregateReferencesIt");
+    }
+
     private static CSharpGeneratorDriver RunGenerator(string source)
     {
         var parseOptions = new CSharpParseOptions(LanguageVersion.Preview);

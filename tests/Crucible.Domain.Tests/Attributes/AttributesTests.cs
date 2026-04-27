@@ -53,4 +53,14 @@ public sealed class AttributesTests
         method.GetCustomAttributes(typeof(PreAttribute<DummyPre>), false).Should().ContainSingle();
         method.GetCustomAttributes(typeof(PostAttribute<DummyPost>), false).Should().ContainSingle();
     }
+
+    [Entity]
+    private sealed class TaggedEntity { }
+
+    [Fact]
+    public void EntityAttribute_IsClassTargeted()
+    {
+        var attr = typeof(TaggedEntity).GetCustomAttributes(typeof(EntityAttribute), false);
+        attr.Should().ContainSingle();
+    }
 }

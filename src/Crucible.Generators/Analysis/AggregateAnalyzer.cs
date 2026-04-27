@@ -76,8 +76,11 @@ internal static class AggregateAnalyzer
         var sortedSteps = steps.OrderBy(s => s.Order).ToArray();
         var properties = ExtractHydratableProperties(classSymbol);
 
+        var (children, childDiagnostics) = ExtractEntityChildren(classSymbol, syntax);
+        diagnostics.AddRange(childDiagnostics);
+
         return new AnalysisResult(
-            new AggregateModel(ns, className, entryName, idType ?? "global::System.Guid", sortedSteps, properties),
+            new AggregateModel(ns, className, entryName, idType ?? "global::System.Guid", sortedSteps, properties, children),
             diagnostics);
     }
 
@@ -175,12 +178,14 @@ internal static class AggregateAnalyzer
             if (member.IsStatic) continue;
             // Skip PendingEvents — transient state, not part of the snapshot.
             if (member.Name == "PendingEvents") continue;
+
+            // Skip entity-typed properties — they're tracked as Children, not scalars.
+            if (IsEntityRelatedProperty(member.Type)) continue;
+
             props.Add(new PropertyModel(member.Name, member.Type.ToDisplayString(), PropertyOrigin.Aggregate));
         }
 
         // Inherited public properties from AggregateRoot<TId>: Id and Version.
-        // We add these explicitly to avoid walking base members (which could include
-        // unwanted inherited members from any future base classes).
         var idProp = classSymbol.BaseType?.GetMembers("Id").OfType<IPropertySymbol>().FirstOrDefault();
         if (idProp is not null)
         {
@@ -193,6 +198,117 @@ internal static class AggregateAnalyzer
         }
 
         return props;
+    }
+
+    private static bool IsEntityRelatedProperty(ITypeSymbol type)
+    {
+        if (type is INamedTypeSymbol named)
+        {
+            // Single ref?
+            if (IsEntityType(named)) return true;
+            // Collection?
+            if (named.OriginalDefinition.ToDisplayString() == "System.Collections.Generic.IReadOnlyList<T>" &&
+                named.TypeArguments.Length == 1 &&
+                named.TypeArguments[0] is INamedTypeSymbol elem &&
+                IsEntityType(elem))
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static (System.Collections.Generic.IReadOnlyList<EntityChildModel> Children, System.Collections.Generic.IReadOnlyList<Diagnostic> Diagnostics) ExtractEntityChildren(
+        INamedTypeSymbol classSymbol,
+        ClassDeclarationSyntax syntax)
+    {
+        var children = new List<EntityChildModel>();
+        var diagnostics = new List<Diagnostic>();
+
+        foreach (var prop in classSymbol.GetMembers().OfType<IPropertySymbol>())
+        {
+            if (prop.DeclaredAccessibility != Accessibility.Public) continue;
+            if (prop.IsStatic) continue;
+            if (prop.Name == "PendingEvents") continue;
+
+            // Detect IReadOnlyList<TEntity>
+            if (prop.Type is INamedTypeSymbol named &&
+                named.OriginalDefinition.ToDisplayString() == "System.Collections.Generic.IReadOnlyList<T>" &&
+                named.TypeArguments.Length == 1)
+            {
+                var elementType = named.TypeArguments[0];
+                if (elementType is INamedTypeSymbol elementNamed && IsEntityType(elementNamed))
+                {
+                    var (fieldName, fieldDiag) = ResolveCollectionBackingField(classSymbol, prop, elementNamed, syntax);
+                    if (fieldDiag is not null) diagnostics.Add(fieldDiag);
+                    children.Add(new EntityChildModel(
+                        PropertyName: prop.Name,
+                        EntityTypeFqn: elementNamed.ToDisplayString(),
+                        EntityClassName: elementNamed.Name,
+                        EntityNamespace: elementNamed.ContainingNamespace.IsGlobalNamespace ? "" : elementNamed.ContainingNamespace.ToDisplayString(),
+                        Kind: EntityChildKind.Collection,
+                        BackingFieldName: fieldName));
+                }
+                continue;
+            }
+
+            // Detect single TEntity reference (with or without nullability)
+            if (prop.Type is INamedTypeSymbol singleType && IsEntityType(singleType))
+            {
+                if (prop.SetMethod is null) continue;  // need a setter for hydration
+                children.Add(new EntityChildModel(
+                    PropertyName: prop.Name,
+                    EntityTypeFqn: singleType.ToDisplayString(),
+                    EntityClassName: singleType.Name,
+                    EntityNamespace: singleType.ContainingNamespace.IsGlobalNamespace ? "" : singleType.ContainingNamespace.ToDisplayString(),
+                    Kind: EntityChildKind.SingleRef,
+                    BackingFieldName: null));
+            }
+        }
+
+        return (children, diagnostics);
+    }
+
+    private static bool IsEntityType(INamedTypeSymbol type)
+    {
+        return type.GetAttributes().Any(a => a.AttributeClass?.ToDisplayString() == "Crucible.Domain.Attributes.EntityAttribute");
+    }
+
+    private static (string? FieldName, Diagnostic? Diagnostic) ResolveCollectionBackingField(
+        INamedTypeSymbol classSymbol,
+        IPropertySymbol property,
+        INamedTypeSymbol elementType,
+        ClassDeclarationSyntax syntax)
+    {
+        // Find private fields of type List<TEntity> or System.Collections.Generic.List<TEntity>
+        var candidates = classSymbol.GetMembers().OfType<IFieldSymbol>()
+            .Where(f => !f.IsStatic && !f.IsImplicitlyDeclared)
+            .Where(f =>
+            {
+                if (f.Type is not INamedTypeSymbol named) return false;
+                if (named.OriginalDefinition.ToDisplayString() != "System.Collections.Generic.List<T>") return false;
+                if (named.TypeArguments.Length != 1) return false;
+                return SymbolEqualityComparer.Default.Equals(named.TypeArguments[0], elementType);
+            })
+            .ToArray();
+
+        if (candidates.Length == 0)
+        {
+            return (null, Diagnostic.Create(
+                CrucibleDiagnostics.MissingChildCollectionField,
+                syntax.Identifier.GetLocation(),
+                classSymbol.Name, property.Name, elementType.Name));
+        }
+
+        if (candidates.Length > 1)
+        {
+            return (null, Diagnostic.Create(
+                CrucibleDiagnostics.AmbiguousChildCollectionField,
+                syntax.Identifier.GetLocation(),
+                classSymbol.Name, property.Name, elementType.Name));
+        }
+
+        return (candidates[0].Name, null);
     }
 
     private static string Pluralize(string s)

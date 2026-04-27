@@ -6,7 +6,9 @@ internal static class SnapshotEmitter
 {
     public static void Emit(CodeBuilder cb, AggregateModel m)
     {
-        // 1. The snapshot interface
+        var aggFqn = string.IsNullOrEmpty(m.Namespace) ? m.ClassName : $"{m.Namespace}.{m.ClassName}";
+
+        // 1. Snapshot interface — scalars + child references
         cb.Line($"public interface I{m.ClassName}Snapshot");
         using (cb.Block())
         {
@@ -14,13 +16,23 @@ internal static class SnapshotEmitter
             {
                 cb.Line($"{p.TypeName} {p.Name} {{ get; }}");
             }
+            foreach (var c in m.Children)
+            {
+                var childIface = $"global::{(string.IsNullOrEmpty(c.EntityNamespace) ? "" : c.EntityNamespace + ".")}I{c.EntityClassName}Snapshot";
+                if (c.Kind == EntityChildKind.Collection)
+                {
+                    cb.Line($"global::System.Collections.Generic.IReadOnlyList<{childIface}> {c.PropertyName} {{ get; }}");
+                }
+                else
+                {
+                    cb.Line($"{childIface}? {c.PropertyName} {{ get; }}");
+                }
+            }
         }
 
         cb.Line();
 
-        // 2. The hydration partial — a partial of the consumer's aggregate class.
-        // This is emitted in the consumer's assembly so it has access to private
-        // setters of the aggregate's own properties via the partial-class mechanism.
+        // 2. Hydration partial — assigns scalars + rehydrates children
         cb.Line($"public partial class {m.ClassName}");
         using (cb.Block())
         {
@@ -42,6 +54,25 @@ internal static class SnapshotEmitter
                         // because this is a partial of the same class).
                         cb.Line($"{p.Name} = snapshot.{p.Name};");
                     }
+                }
+                foreach (var c in m.Children)
+                {
+                    var entityFqn = string.IsNullOrEmpty(c.EntityNamespace) ? c.EntityTypeFqn : $"{c.EntityNamespace}.{c.EntityClassName}";
+                    if (c.Kind == EntityChildKind.Collection && c.BackingFieldName is not null)
+                    {
+                        cb.Line($"this.{c.BackingFieldName}.Clear();");
+                        cb.Line($"foreach (var __child in snapshot.{c.PropertyName})");
+                        using (cb.Block())
+                        {
+                            cb.Line($"this.{c.BackingFieldName}.Add(global::{entityFqn}.RehydrateFrom(__child));");
+                        }
+                    }
+                    else if (c.Kind == EntityChildKind.SingleRef)
+                    {
+                        cb.Line($"{c.PropertyName} = snapshot.{c.PropertyName} is null ? null : global::{entityFqn}.RehydrateFrom(snapshot.{c.PropertyName});");
+                    }
+                    // If Collection but BackingFieldName is null, the analyzer already emitted CRC303/304;
+                    // we silently skip emission for that property.
                 }
             }
         }

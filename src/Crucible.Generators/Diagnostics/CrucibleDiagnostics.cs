@@ -61,4 +61,29 @@ internal static class CrucibleDiagnostics
         "CRC200", "[Pre<T>] / [Post<T>] target does not implement the expected interface",
         "Type '{0}' referenced by [{1}<{0}>] does not implement {2}",
         Category, DiagnosticSeverity.Warning, true, helpLinkUri: DocBase + "CRC200");
+
+    public static readonly DiagnosticDescriptor EntityNotPartial = new(
+        "CRC300", "Entity is not partial",
+        "Entity '{0}' must be declared 'partial'",
+        Category, DiagnosticSeverity.Error, true, helpLinkUri: DocBase + "CRC300");
+
+    public static readonly DiagnosticDescriptor EntityNotDerived = new(
+        "CRC301", "Entity must derive from Entity<TId>",
+        "Entity '{0}' must derive from Entity<TId>",
+        Category, DiagnosticSeverity.Error, true, helpLinkUri: DocBase + "CRC301");
+
+    public static readonly DiagnosticDescriptor EntityNoParameterlessCtor = new(
+        "CRC302", "Entity must have a parameterless constructor",
+        "Entity '{0}' must have a parameterless constructor (any visibility) for hydration",
+        Category, DiagnosticSeverity.Error, true, helpLinkUri: DocBase + "CRC302");
+
+    public static readonly DiagnosticDescriptor MissingChildCollectionField = new(
+        "CRC303", "No backing field found for entity collection",
+        "Aggregate '{0}' property '{1}' of type IReadOnlyList<{2}> requires a private field of type List<{2}> for hydration",
+        Category, DiagnosticSeverity.Error, true, helpLinkUri: DocBase + "CRC303");
+
+    public static readonly DiagnosticDescriptor AmbiguousChildCollectionField = new(
+        "CRC304", "Multiple candidate backing fields for entity collection",
+        "Aggregate '{0}' has multiple fields of type List<{2}>; cannot determine which backs property '{1}'",
+        Category, DiagnosticSeverity.Error, true, helpLinkUri: DocBase + "CRC304");
 }
