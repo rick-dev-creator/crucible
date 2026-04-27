@@ -44,11 +44,13 @@ The whole thing is enforced through 27 Roslyn diagnostics (`CRC001`–`CRC404`).
 
 ## Motivation
 
-This technique is not new for me — I've used variations of it on internal projects for years. What's new is materializing it as an open-source library. Crucible is the consolidation of patterns that worked in those private codebases, packaged so other teams can adopt the parts they want.
+This is built on close to two decades of C# work and a long list of enterprise applications — CRMs, billing systems, line-of-business apps, the usual. The technique itself is not new for me; I've used variations of it on internal projects for years. What's new is materializing it as an open-source library so other teams can adopt the parts they want.
 
-The trigger for publishing was a CRM where, given enough rope, an LLM eventually fragmented the domain into a maze of services, validators, and partial implementations of the same business rule. Documentation didn't help; the LLM (and the juniors) didn't read it. Code review caught some of it; the rest shipped and bit us months later. The realization: **structural enforcement at compile time is the only durable defense**. Anything you "ask" the developer to do is something the developer (human or AI) will eventually skip. Anything that doesn't compile cannot ship.
+That experience earns credibility for the patterns, but **it does not make this the right answer** — only one defensible answer among several. DDD has been written about for 20+ years by smarter people than me; teams have legitimately read it differently and built successful systems on opposing premises. Crucible enforces one specific reading, the one that matched my projects. If your reading differs, your library differs. That's healthy.
 
-Crucible is the structural enforcement encoded as a library. It is not friendlier than what you already have — it is more restrictive on purpose. The friction is the feature.
+The trigger for publishing now was a CRM where, given enough rope, an LLM eventually fragmented the domain into a maze of services, validators, and partial implementations of the same business rule. Documentation didn't help; the LLM (and the juniors) didn't read it. Code review caught some of it; the rest shipped and bit us months later. The realization: **structural enforcement at compile time is the only durable defense**. Anything you "ask" the developer to do is something the developer (human or AI) will eventually skip. Anything that doesn't compile cannot ship.
+
+Crucible is the structural enforcement encoded as a library. It is not friendlier than what you already have — it is more restrictive on purpose. The friction is the feature. Whether the trade-off is worth it depends on your team and your project, not on the framework's marketing.
 
 ### Who this is *not* for
 
