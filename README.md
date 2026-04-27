@@ -486,9 +486,10 @@ Out of scope (use other libraries for these — Crucible composes inside them):
 - i18n / localized error messages (presentation layer maps `ErrorCode` → copy)
 
 Roadmap candidates (post-v2.2):
-- `Crucible.OpenTelemetry` — `IStepBehavior` for traces + metrics out of the box
-- `Crucible.Analyzers` — modeling-quality lints (god aggregates, anemic models, handler-to-handler calls)
-- More samples (approval workflow with branching, multi-aggregate via events, multi-tenant)
+- **`Crucible.OpenTelemetry`** — `IStepBehavior` for traces + metrics out of the box. Activity per chain step, standard tag set (`aggregate.name`, `step.name`, `step.kind`, `error.code`), metrics for chain duration, step success/failure rates, and event dispatch latency. Single optional dependency (`OpenTelemetry.Api`) so consumers who don't enable observability pay nothing.
+- **Contoso reference app** — a substantial end-to-end demo (CRM- or e-commerce-flavored) that exercises every Crucible feature in a real-shaped codebase: multiple aggregates with cross-aggregate event flows, child entities with nested snapshots, value objects with EF Core mapping, branching workflows (approval, payment authorize/void/refund), Reconstruct from a real database, behaviors and pre/post processors, full HTTP layer with MediatR / Wolverine integration patterns. The current `Crucible.Sample.Orders` is a single-aggregate smoke test; the Contoso app is the "this is what a real project looks like" reference. Goal: a developer can clone, run, and read it for an afternoon and have a working mental model of how the pieces fit.
+- `Crucible.Analyzers` — modeling-quality lints (god aggregates, anemic models, handler-to-handler calls, missing `.Catch` on chains with throwing handlers).
+- More focused samples (approval workflow with branching as a standalone, multi-tenant patterns, event sourcing opt-in walkthrough).
 
 ---
 
