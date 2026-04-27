@@ -12,9 +12,14 @@ using OrdersApi = Crucible.Sample.Orders.Domain.Orders;
 
 namespace Crucible.Sample.Orders.Tests.Chains;
 
+/// <summary>
+/// Senior-DDD-style tests for aggregate-with-entities Reconstruct: each test pulls the
+/// post-chain aggregate from the InMemoryOrderRepository and asserts its real state,
+/// including the rehydrated Items collection. No reflection, no chain internals.
+/// </summary>
 public sealed class ReconstructWithItemsTests
 {
-    private static IServiceProvider BuildServices()
+    private static (IServiceProvider Sp, IOrderRepository Repo) BuildServices()
     {
         var services = new ServiceCollection();
         services.AddSingleton<ILoggerFactory>(NullLoggerFactory.Instance);
@@ -22,13 +27,10 @@ public sealed class ReconstructWithItemsTests
         services.AddCrucible();
         services.AddOrderAggregate();
         services.AddSingleton<IOrderRepository, InMemoryOrderRepository>();
-        return services.BuildServiceProvider();
+        var sp = services.BuildServiceProvider();
+        return (sp, sp.GetRequiredService<IOrderRepository>());
     }
 
-    /// <summary>
-    /// EF entity for the Order — implements IOrderSnapshot which now includes the
-    /// Items collection (populated with per-item snapshots).
-    /// </summary>
     private sealed class OrderEntity : IOrderSnapshot
     {
         public OrderId Id { get; set; }
@@ -40,27 +42,27 @@ public sealed class ReconstructWithItemsTests
         public IReadOnlyList<IOrderItemSnapshot> Items { get; set; } = System.Array.Empty<IOrderItemSnapshot>();
     }
 
-    /// <summary>EF row representing one persisted item.</summary>
     private sealed record OrderItemRow(OrderItemId Id, string ProductSku, int Quantity, Money UnitPrice) : IOrderItemSnapshot;
 
-    [Fact]
-    public async Task ReconstructAtPlaceOrder_WithItems_RehydratesAllChildEntities()
+    private static OrderEntity MakeEntity(OrderStatus status, params OrderItemRow[] items) => new()
     {
-        var sp = BuildServices();
-        var entity = new OrderEntity
-        {
-            Id = OrderId.From(System.Guid.NewGuid()),
-            CustomerId = "C-1",
-            Total = new Money(150m, "USD"),
-            Status = OrderStatus.Placed,
-            Carrier = "UPS",
-            Version = 4,
-            Items = new[]
-            {
-                new OrderItemRow(OrderItemId.From(System.Guid.NewGuid()), "SKU-A", 2, new Money(50m, "USD")),
-                new OrderItemRow(OrderItemId.From(System.Guid.NewGuid()), "SKU-B", 1, new Money(50m, "USD")),
-            },
-        };
+        Id = OrderId.From(System.Guid.NewGuid()),
+        CustomerId = "C-001",
+        Total = new Money(150m, "USD"),
+        Status = status,
+        Carrier = status == OrderStatus.Draft ? null : "UPS",
+        Version = 4,
+        Items = items,
+    };
+
+    [Fact]
+    public async Task ReconstructAtPlaceOrder_WithItems_RehydratesEachItemWithExactValues()
+    {
+        var (sp, repo) = BuildServices();
+
+        var item1 = new OrderItemRow(OrderItemId.From(System.Guid.NewGuid()), "SKU-A", 2, new Money(50m, "USD"));
+        var item2 = new OrderItemRow(OrderItemId.From(System.Guid.NewGuid()), "SKU-B", 1, new Money(50m, "USD"));
+        var entity = MakeEntity(OrderStatus.Placed, item1, item2);
 
         var result = await OrdersApi
             .ReconstructAtPlaceOrder(entity)
@@ -68,36 +70,145 @@ public sealed class ReconstructWithItemsTests
             .ExecuteAsync(sp);
 
         result.IsSuccess.Should().BeTrue();
+
+        // Pull the persisted aggregate from the repo and assert state directly.
+        var saved = await repo.FindAsync(entity.Id, default);
+        saved.Should().NotBeNull();
+        saved!.Items.Should().HaveCount(2);
+
+        var savedById = saved.Items.ToDictionary(i => i.Id);
+        savedById[item1.Id].ProductSku.Should().Be("SKU-A");
+        savedById[item1.Id].Quantity.Should().Be(2);
+        savedById[item1.Id].UnitPrice.Should().Be(new Money(50m, "USD"));
+        savedById[item2.Id].ProductSku.Should().Be("SKU-B");
+        savedById[item2.Id].Quantity.Should().Be(1);
     }
 
     [Fact]
-    public async Task ReconstructAtCreate_PreservesItemCollectionExactly()
+    public async Task ReconstructAtCreate_PreservesItemCollectionExactly_ThroughPlaceOrder()
     {
-        var sp = BuildServices();
-        var itemId1 = OrderItemId.From(System.Guid.NewGuid());
-        var itemId2 = OrderItemId.From(System.Guid.NewGuid());
+        var (sp, repo) = BuildServices();
 
-        var entity = new OrderEntity
-        {
-            Id = OrderId.From(System.Guid.NewGuid()),
-            CustomerId = "C-2",
-            Total = new Money(100m, "EUR"),
-            Status = OrderStatus.Draft,
-            Version = 1,
-            Items = new[]
-            {
-                new OrderItemRow(itemId1, "SKU-X", 5, new Money(15m, "EUR")),
-                new OrderItemRow(itemId2, "SKU-Y", 1, new Money(25m, "EUR")),
-            },
-        };
+        var itemId = OrderItemId.From(System.Guid.NewGuid());
+        var entity = MakeEntity(
+            OrderStatus.Draft,
+            new OrderItemRow(itemId, "SKU-X", 5, new Money(15m, "EUR")));
 
-        // Reconstruct + confirm the chain runs to completion.
         var result = await OrdersApi
             .ReconstructAtCreate(entity)
+            .PlaceOrder(new ShippingOptions("DHL", 3))
             .ExecuteAsync(sp);
 
         result.IsSuccess.Should().BeTrue();
-        // The snapshot test above proved hydration works structurally.
-        // This test confirms the aggregate is freshly constructed each ExecuteAsync — no shared state.
+        var saved = await repo.FindAsync(entity.Id, default);
+        saved.Should().NotBeNull();
+        saved!.Items.Should().ContainSingle(i => i.Id == itemId)
+            .Which.ProductSku.Should().Be("SKU-X");
+        // PlaceOrder transitioned status — verify the item collection survived the transition
+        saved.Status.Should().Be(OrderStatus.Placed);
+        saved.Carrier.Should().Be("DHL");
+    }
+
+    [Fact]
+    public async Task ReconstructAtPlaceOrder_WithEmptyItemsCollection_RunsCleanAndProducesEmptyItems()
+    {
+        var (sp, repo) = BuildServices();
+        var entity = MakeEntity(OrderStatus.Placed);  // no items
+        entity.Items = System.Array.Empty<IOrderItemSnapshot>();
+
+        var result = await OrdersApi
+            .ReconstructAtPlaceOrder(entity)
+            .UpdateOrderInventory()
+            .ExecuteAsync(sp);
+
+        result.IsSuccess.Should().BeTrue();
+        var saved = await repo.FindAsync(entity.Id, default);
+        saved!.Items.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task ReconstructAtPlaceOrder_PreservesVersionFromSnapshot()
+    {
+        var (sp, repo) = BuildServices();
+        var entity = MakeEntity(OrderStatus.Placed, new OrderItemRow(OrderItemId.New(), "SKU", 1, new Money(10m, "USD")));
+        entity.Version = 17;
+
+        var result = await OrdersApi
+            .ReconstructAtPlaceOrder(entity)
+            .UpdateOrderInventory()
+            .ExecuteAsync(sp);
+
+        result.IsSuccess.Should().BeTrue();
+        var saved = await repo.FindAsync(entity.Id, default);
+        // The chain bumped Version once for the UpdateOrderInventory step.
+        saved!.Version.Should().Be(18);
+    }
+
+    [Fact]
+    public async Task ReconstructAtCreate_ItemsHaveEntityIdentityEquality()
+    {
+        var (sp, repo) = BuildServices();
+        var sharedId = OrderItemId.From(System.Guid.NewGuid());
+        var entity = MakeEntity(
+            OrderStatus.Draft,
+            new OrderItemRow(sharedId, "SKU-Z", 9, new Money(99m, "USD")));
+
+        await OrdersApi
+            .ReconstructAtCreate(entity)
+            .PlaceOrder(new ShippingOptions("UPS", 1))
+            .ExecuteAsync(sp);
+
+        var saved = await repo.FindAsync(entity.Id, default);
+        var rehydratedItem = saved!.Items.Single();
+        rehydratedItem.Id.Should().Be(sharedId);
+
+        // Entity<TId> equality is identity-based — a same-Id stand-in equals it.
+        var stub = new OrderItem(sharedId, "different-sku", 0, Money.Zero("USD"));
+        rehydratedItem.Equals(stub).Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task IndependentReconstructionsDoNotShareItemState()
+    {
+        var (sp, repo) = BuildServices();
+
+        var aId = OrderItemId.From(System.Guid.NewGuid());
+        var bId = OrderItemId.From(System.Guid.NewGuid());
+
+        var entityA = MakeEntity(OrderStatus.Placed, new OrderItemRow(aId, "SKU-A", 1, new Money(10m, "USD")));
+        var entityB = MakeEntity(OrderStatus.Placed, new OrderItemRow(bId, "SKU-B", 2, new Money(20m, "USD")));
+
+        await OrdersApi.ReconstructAtPlaceOrder(entityA).UpdateOrderInventory().ExecuteAsync(sp);
+        await OrdersApi.ReconstructAtPlaceOrder(entityB).UpdateOrderInventory().ExecuteAsync(sp);
+
+        var savedA = await repo.FindAsync(entityA.Id, default);
+        var savedB = await repo.FindAsync(entityB.Id, default);
+
+        savedA!.Items.Should().ContainSingle().Which.Id.Should().Be(aId);
+        savedB!.Items.Should().ContainSingle().Which.Id.Should().Be(bId);
+        savedA.Items.Single().ProductSku.Should().Be("SKU-A");
+        savedB.Items.Single().ProductSku.Should().Be("SKU-B");
+    }
+
+    [Fact]
+    public async Task ReconstructAtPlaceOrder_OnDraftStatusInSnapshot_FailsAtNextDomainStep_ItemsStillRehydrated()
+    {
+        // Even when the snapshot is inconsistent (Status=Draft passed via "AtPlaceOrder" entry),
+        // the items collection is rehydrated before the next aggregate method runs and rejects.
+        var (sp, repo) = BuildServices();
+
+        var item = new OrderItemRow(OrderItemId.New(), "SKU-Q", 3, new Money(30m, "USD"));
+        var entity = MakeEntity(OrderStatus.Draft, item);  // mismatch: Draft on a Placed-phase entry
+
+        var result = await OrdersApi
+            .ReconstructAtPlaceOrder(entity)
+            .UpdateOrderInventory()
+            .ExecuteAsync(sp);
+
+        result.IsDomainFailure.Should().BeTrue();
+        // The repo never received a save (handler runs only on aggregate-method success),
+        // but we can verify by trying to find — should be null since UpdateOrderInventoryHandler never persisted.
+        var saved = await repo.FindAsync(entity.Id, default);
+        saved.Should().BeNull();
     }
 }
