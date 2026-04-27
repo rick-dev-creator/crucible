@@ -58,4 +58,18 @@ public sealed class AggregateRootTests
     {
         new Sample().Version.Should().Be(0);
     }
+
+    [Fact]
+    public void RestoreVersion_FromSubclass_SetsVersion()
+    {
+        var s = new VersionRestorer();
+        s.Restore(42);
+        s.Version.Should().Be(42);
+    }
+
+    private sealed class VersionRestorer : AggregateRoot<SampleId>
+    {
+        public VersionRestorer() => Id = SampleId.New();
+        public void Restore(long v) => RestoreVersion(v);
+    }
 }

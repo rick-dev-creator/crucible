@@ -5,4 +5,5 @@ internal sealed record AggregateModel(
     string ClassName,
     string EntryClassName,
     string IdTypeName,
-    System.Collections.Generic.IReadOnlyList<StepModel> Steps);
+    System.Collections.Generic.IReadOnlyList<StepModel> Steps,
+    System.Collections.Generic.IReadOnlyList<PropertyModel> Properties);

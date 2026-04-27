@@ -74,9 +74,10 @@ internal static class AggregateAnalyzer
 
         var ns = classSymbol.ContainingNamespace.IsGlobalNamespace ? "" : classSymbol.ContainingNamespace.ToDisplayString();
         var sortedSteps = steps.OrderBy(s => s.Order).ToArray();
+        var properties = ExtractHydratableProperties(classSymbol);
 
         return new AnalysisResult(
-            new AggregateModel(ns, className, entryName, idType ?? "global::System.Guid", sortedSteps),
+            new AggregateModel(ns, className, entryName, idType ?? "global::System.Guid", sortedSteps, properties),
             diagnostics);
     }
 
@@ -160,6 +161,38 @@ internal static class AggregateAnalyzer
             }
         }
         return results;
+    }
+
+    private static IReadOnlyList<PropertyModel> ExtractHydratableProperties(INamedTypeSymbol classSymbol)
+    {
+        var props = new List<PropertyModel>();
+
+        // Aggregate-declared public properties with a setter (any visibility).
+        foreach (var member in classSymbol.GetMembers().OfType<IPropertySymbol>())
+        {
+            if (member.DeclaredAccessibility != Accessibility.Public) continue;
+            if (member.SetMethod is null) continue;  // read-only props are not hydratable
+            if (member.IsStatic) continue;
+            // Skip PendingEvents — transient state, not part of the snapshot.
+            if (member.Name == "PendingEvents") continue;
+            props.Add(new PropertyModel(member.Name, member.Type.ToDisplayString(), PropertyOrigin.Aggregate));
+        }
+
+        // Inherited public properties from AggregateRoot<TId>: Id and Version.
+        // We add these explicitly to avoid walking base members (which could include
+        // unwanted inherited members from any future base classes).
+        var idProp = classSymbol.BaseType?.GetMembers("Id").OfType<IPropertySymbol>().FirstOrDefault();
+        if (idProp is not null)
+        {
+            props.Add(new PropertyModel("Id", idProp.Type.ToDisplayString(), PropertyOrigin.Base));
+        }
+        var versionProp = classSymbol.BaseType?.GetMembers("Version").OfType<IPropertySymbol>().FirstOrDefault();
+        if (versionProp is not null)
+        {
+            props.Add(new PropertyModel("Version", versionProp.Type.ToDisplayString(), PropertyOrigin.Base));
+        }
+
+        return props;
     }
 
     private static string Pluralize(string s)

@@ -95,5 +95,35 @@ internal static class StepEmitter
                 }
             }
         }
+
+        // Reconstruct step impls — one per step
+        foreach (var step in m.Steps)
+        {
+            EmitReconstructStep(cb, m, step, aggFqn);
+        }
+    }
+
+    private static void EmitReconstructStep(CodeBuilder cb, AggregateModel m, StepModel step, string aggFqn)
+    {
+        var snapshotIface = $"global::{(string.IsNullOrEmpty(m.Namespace) ? "" : m.Namespace + ".")}I{m.ClassName}Snapshot";
+
+        cb.Line($"internal sealed class __Step_ReconstructAt{step.MethodName} : global::Crucible.Chains.Steps.IStep<global::{aggFqn}, {m.IdTypeName}>");
+        using (cb.Block())
+        {
+            cb.Line($"private readonly {snapshotIface} _snapshot;");
+            cb.Line($"public __Step_ReconstructAt{step.MethodName}({snapshotIface} snapshot) {{ this._snapshot = snapshot; }}");
+            cb.Line($"public global::Crucible.Chains.Steps.StepKind Kind => global::Crucible.Chains.Steps.StepKind.AggregateMethod;");
+            cb.Line($"public string Name => \"{m.ClassName}.ReconstructAt{step.MethodName}\";");
+            cb.Line($"public global::System.Threading.Tasks.Task<global::Crucible.Chains.Steps.StepOutcome> InvokeAsync(global::Crucible.Chains.Steps.StepContext<global::{aggFqn}, {m.IdTypeName}> ctx, global::System.Threading.CancellationToken ct)");
+            using (cb.Block())
+            {
+                cb.Line($"var aggregate = new global::{aggFqn}();");
+                cb.Line($"aggregate.__HydrateFromSnapshot(this._snapshot);");
+                cb.Line($"ctx.Aggregate = aggregate;");
+                // No event raised; LastStepResult stays default. The TState slot is the
+                // event type only for typestate purposes — the value is never read.
+                cb.Line($"return global::System.Threading.Tasks.Task.FromResult(global::Crucible.Chains.Steps.StepOutcome.Success());");
+            }
+        }
     }
 }

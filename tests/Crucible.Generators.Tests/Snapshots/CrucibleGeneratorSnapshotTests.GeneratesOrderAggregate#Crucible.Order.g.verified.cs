@@ -4,11 +4,34 @@
 
 namespace Sample;
 
+public interface IOrderSnapshot
+{
+    Sample.OrderId Id { get; }
+    long Version { get; }
+}
+
+public partial class Order
+{
+    internal void __HydrateFromSnapshot(IOrderSnapshot snapshot)
+    {
+        Id = snapshot.Id;
+        RestoreVersion(snapshot.Version);
+    }
+}
+
 public static class Orders
 {
     public static global::Crucible.Chains.Stages.IChainStage<global::Sample.Order, Sample.OrderId, Sample.OrderCreated> Create(Sample.OrderDto dto)
     {
         return global::Crucible.Chains.Stages.ChainBuilder.Begin<global::Sample.Order, Sample.OrderId, Sample.OrderCreated>(new __Step_Create(dto));
+    }
+    public static global::Crucible.Chains.Stages.IChainStage<global::Sample.Order, Sample.OrderId, Sample.OrderCreated> ReconstructAtCreate(global::Sample.IOrderSnapshot snapshot)
+    {
+        return global::Crucible.Chains.Stages.ChainBuilder.Begin<global::Sample.Order, Sample.OrderId, Sample.OrderCreated>(new __Step_ReconstructAtCreate(snapshot));
+    }
+    public static global::Crucible.Chains.Stages.IChainStage<global::Sample.Order, Sample.OrderId, Sample.OrderPlaced> ReconstructAtPlaceOrder(global::Sample.IOrderSnapshot snapshot)
+    {
+        return global::Crucible.Chains.Stages.ChainBuilder.Begin<global::Sample.Order, Sample.OrderId, Sample.OrderPlaced>(new __Step_ReconstructAtPlaceOrder(snapshot));
     }
 }
 
@@ -52,6 +75,34 @@ internal sealed class __Step_PlaceOrder : global::Crucible.Chains.Steps.IStep<gl
         var domainResult = aggregate.PlaceOrder();
         if (domainResult.IsFailure) return global::Crucible.Chains.Steps.StepOutcome.Failure(domainResult.Errors);
         return global::Crucible.Chains.Steps.StepOutcome.Success((object)domainResult.Value!);
+    }
+}
+internal sealed class __Step_ReconstructAtCreate : global::Crucible.Chains.Steps.IStep<global::Sample.Order, Sample.OrderId>
+{
+    private readonly global::Sample.IOrderSnapshot _snapshot;
+    public __Step_ReconstructAtCreate(global::Sample.IOrderSnapshot snapshot) { this._snapshot = snapshot; }
+    public global::Crucible.Chains.Steps.StepKind Kind => global::Crucible.Chains.Steps.StepKind.AggregateMethod;
+    public string Name => "Order.ReconstructAtCreate";
+    public global::System.Threading.Tasks.Task<global::Crucible.Chains.Steps.StepOutcome> InvokeAsync(global::Crucible.Chains.Steps.StepContext<global::Sample.Order, Sample.OrderId> ctx, global::System.Threading.CancellationToken ct)
+    {
+        var aggregate = new global::Sample.Order();
+        aggregate.__HydrateFromSnapshot(this._snapshot);
+        ctx.Aggregate = aggregate;
+        return global::System.Threading.Tasks.Task.FromResult(global::Crucible.Chains.Steps.StepOutcome.Success());
+    }
+}
+internal sealed class __Step_ReconstructAtPlaceOrder : global::Crucible.Chains.Steps.IStep<global::Sample.Order, Sample.OrderId>
+{
+    private readonly global::Sample.IOrderSnapshot _snapshot;
+    public __Step_ReconstructAtPlaceOrder(global::Sample.IOrderSnapshot snapshot) { this._snapshot = snapshot; }
+    public global::Crucible.Chains.Steps.StepKind Kind => global::Crucible.Chains.Steps.StepKind.AggregateMethod;
+    public string Name => "Order.ReconstructAtPlaceOrder";
+    public global::System.Threading.Tasks.Task<global::Crucible.Chains.Steps.StepOutcome> InvokeAsync(global::Crucible.Chains.Steps.StepContext<global::Sample.Order, Sample.OrderId> ctx, global::System.Threading.CancellationToken ct)
+    {
+        var aggregate = new global::Sample.Order();
+        aggregate.__HydrateFromSnapshot(this._snapshot);
+        ctx.Aggregate = aggregate;
+        return global::System.Threading.Tasks.Task.FromResult(global::Crucible.Chains.Steps.StepOutcome.Success());
     }
 }
 

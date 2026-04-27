@@ -14,4 +14,10 @@ public abstract class AggregateRoot<TId> where TId : IAggregateId<TId>
     protected void Raise(IDomainEvent @event) => _pendingEvents.Add(@event);
 
     internal void ClearPendingEvents() => _pendingEvents.Clear();
+
+    /// <summary>
+    /// Restores Version during hydration from a persisted snapshot.
+    /// Only the generator-emitted hydration helper should call this.
+    /// </summary>
+    protected void RestoreVersion(long version) => Version = version;
 }
