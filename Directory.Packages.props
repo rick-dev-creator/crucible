@@ -20,7 +20,6 @@
     <PackageVersion Include="coverlet.collector" Version="6.0.4" />
 
     <!-- Generator testing -->
-    <PackageVersion Include="Microsoft.CodeAnalysis.CSharp.SourceGenerators.Testing.XUnit" Version="1.1.2" />
     <PackageVersion Include="Verify.Xunit" Version="26.6.0" />
     <PackageVersion Include="Verify.SourceGenerators" Version="2.5.0" />
 
