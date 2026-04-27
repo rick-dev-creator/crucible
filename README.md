@@ -146,14 +146,16 @@ app.MapPost("/orders", async (OrderDto dto, string carrier, IServiceProvider sp,
     return await Orders
         .Create(dto)
         .PlaceOrder(new ShippingOptions(carrier, 2))
-        .DispatchEvents()
-        .ExecuteAsync(sp, ct)
+        .DispatchEvents()                                                         // appends a chain step
+        .ExecuteAsync(sp, ct)                                                     // <-- here the plan runs
         .Catch(ex => new IError[] { new InfrastructureError("ORDER_PIPELINE", ex.Message) })
         .Match(
             success => Results.Ok(new { success.OrderId, success.OccurredAt }),
             errors  => Results.BadRequest(new { errors }));
 });
 ```
+
+> **The chain is deferred.** Every method before `ExecuteAsync` (including `DispatchEvents`, `Tap`, `OnError`, `ProducedEvents`) just appends a step to the plan — none of them execute domain logic at the call site. `ExecuteAsync` runs the assembled plan in order. So in the example above, `DispatchEvents` appearing syntactically before `ExecuteAsync` does **not** mean events fire before the chain runs; it means "as a step in this plan, drain accumulated events and dispatch them to `IDomainEventHandler<T>` handlers." That step executes when the chain reaches it — typically last, so events fire only after every prior step succeeded. Mid-chain placement is also valid (e.g., dispatch before a later step that depends on the side effect). Same model as LINQ: `.Where().Select()` is just a plan; `.ToList()` runs it.
 
 Things you cannot do with this code (and the diagnostic that fires):
 
@@ -291,27 +293,43 @@ Built-in implementations: `ValidationError`, `BusinessRuleError`, `ConflictError
 
 ### Chain runtime
 
-Each `[Step]` method on an aggregate becomes a node in a fluent chain. The chain is *deferred*: each call appends a step to a plan; `ExecuteAsync` runs them.
+Each `[Step]` method on an aggregate becomes a node in a fluent chain. **The chain is deferred:** each method call (`Create`, `PlaceOrder`, `Tap`, `OnError`, `ProducedEvents`, `DispatchEvents`) only appends a step to the plan. `ExecuteAsync` actually runs the assembled plan, in order, and returns `Task<ChainResult<TFinalState>>`. Same mental model as LINQ — until you reach the terminal call, you're describing a pipeline, not running one.
 
-Per step the executor runs (in order):
+Per aggregate-method step the executor runs (in order):
 1. `IStepBehavior` decorators (cross-cutting concerns: tracing, logging, metrics)
 2. `[Pre<TPre>]` processors (validation, authorization)
 3. The aggregate method itself (synchronous, returns `Result<TOutput>`)
 4. The `IStepHandler<...>` for the step (async, returns `Result`; only runs if aggregate returned success)
 5. `[Post<TPost>]` processors (telemetry, fire-and-forget side effects)
-6. Pending events from the aggregate are accumulated into the chain's event log
+6. Pending events from the aggregate are drained into the chain's accumulated event log
 
-After all steps, `ExecuteAsync` returns `Task<ChainResult<TFinalState>>` with three possible states (`Success`, `DomainFailure`, `Exceptional`) and the cumulative event log.
+`DispatchEvents`, `Tap`, `OnError`, `ProducedEvents` are also chain steps. They execute when the plan reaches them — not at the call site, not at `ExecuteAsync` invocation. Their placement in the chain is meaningful:
+
+```csharp
+// (a) Dispatch at the end — events fire only after every prior step succeeded:
+.Create(dto).PlaceOrder(s).UpdateOrderInventory().DispatchEvents().ExecuteAsync(sp, ct);
+
+// (b) Dispatch mid-chain — events from Create fire before PlaceOrder runs (useful when
+//     a later step depends on the side effect being already published):
+.Create(dto).DispatchEvents().PlaceOrder(s).ExecuteAsync(sp, ct);
+
+// (c) ProducedEvents as inspection without drain — useful for logging/checkpointing:
+.Create(dto)
+.ProducedEvents(events => log.LogInfo("after Create: {Count} events", events.Count), drain: false)
+.PlaceOrder(s).DispatchEvents().ExecuteAsync(sp, ct);
+```
+
+After execution, `ChainResult<T>` exposes three states (`Success`, `DomainFailure`, `Exceptional`) and the cumulative event log. `Match` is exhaustive over success/failure; `Catch` translates exceptions into `IError`s before `Match` sees the result:
 
 ```csharp
 return await Orders
     .Create(dto)
     .PlaceOrder(shipping)
     .UpdateOrderInventory()
-    .DispatchEvents()                           // event-handlers fire here
-    .ExecuteAsync(sp, ct)
-    .Catch(ex => /* exception → IError list */)
-    .Match(
+    .DispatchEvents()                                  // chain step — event handlers fire here, in plan order
+    .ExecuteAsync(sp, ct)                              // <-- plan runs from this point
+    .Catch(ex => /* exception → IError[] */)           // post-execute (Task<ChainResult<T>> extension)
+    .Match(                                            // post-execute, terminal
         success => Results.Ok(success),
         errors  => Results.BadRequest(errors));
 ```
