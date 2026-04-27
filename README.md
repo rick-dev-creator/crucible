@@ -44,11 +44,26 @@ The whole thing is enforced through 27 Roslyn diagnostics (`CRC001`–`CRC404`).
 
 ## Motivation
 
-Real motivation: I built a CRM where the LLM, given enough rope, eventually fragmented the domain into a maze of services, validators, and partial implementations of the same business rule. Documentation didn't help; the LLM (and the juniors) didn't read it. Code review caught some of it; the rest shipped and bit us months later.
+This technique is not new for me — I've used variations of it on internal projects for years. What's new is materializing it as an open-source library. Crucible is the consolidation of patterns that worked in those private codebases, packaged so other teams can adopt the parts they want.
 
-The realization: **structural enforcement at compile time is the only durable defense**. Anything you "ask" the developer to do is something the developer (human or AI) will eventually skip. Anything that doesn't compile cannot ship.
+The trigger for publishing was a CRM where, given enough rope, an LLM eventually fragmented the domain into a maze of services, validators, and partial implementations of the same business rule. Documentation didn't help; the LLM (and the juniors) didn't read it. Code review caught some of it; the rest shipped and bit us months later. The realization: **structural enforcement at compile time is the only durable defense**. Anything you "ask" the developer to do is something the developer (human or AI) will eventually skip. Anything that doesn't compile cannot ship.
 
 Crucible is the structural enforcement encoded as a library. It is not friendlier than what you already have — it is more restrictive on purpose. The friction is the feature.
+
+### Who this is *not* for
+
+Crucible is opinionated. It encodes a specific reading of DDD that has worked well on internal projects, but DDD itself is interpreted differently by different teams. **This library is not a universal DDD framework**, and it is not for every project:
+
+- If your team prefers anemic domain models with services orchestrating mutations: Crucible will fight you at every step. Don't use it.
+- If your team prefers exceptions for domain rules: Crucible's `Result<T>` discipline will feel pedantic. Don't use it.
+- If your team prefers public constructors and factory methods on aggregates: Crucible blocks that with CRC011/CRC305/CRC402. Don't use it.
+- If your aggregates are mostly CRUD and you don't have multi-step domain workflows: the chain typestate is overkill. A simpler library or no library is better.
+- If you do event sourcing today and need it as a first-class concept: Crucible v2.2 is state-based; ES is on the roadmap but not shipped.
+- If you need cross-aggregate orchestration (sagas with compensation, long-running workflows): use MassTransit or Wolverine — Crucible doesn't aim to replace those.
+
+There are common DDD principles (aggregate as transactional boundary, value objects with structural equality, domain events, ubiquitous language) that almost all DDD practitioners agree on. Crucible enforces these. Beyond that, it makes opinionated calls — and those calls won't suit every team. That's deliberate. A framework that tries to please everyone enforces nothing.
+
+If after reading the diagnostics list you find yourself wanting to suppress half of them, Crucible is the wrong fit. If you read them and think "yes, exactly, my team should hit all of these", you're the audience.
 
 ---
 
