@@ -59,6 +59,21 @@ services.AddOrderAggregate();
 services.AddCrucibleEventHandler<OrderPlaced, NotifyWarehouseHandler>();
 ```
 
+## Error contract
+
+All domain errors implement `IError`:
+
+```csharp
+public interface IError
+{
+    string ErrorCode { get; }            // stable, machine-readable identifier
+    string ErrorDescription { get; }     // for internal logging only — NOT user-facing
+    ErrorKind Kind { get; }
+}
+```
+
+The library forces this contract on `Result<T>.Errors`, `ChainResult<T>.Errors`, and all step/handler signatures. The domain identifies errors; presentation layers map `ErrorCode` to localized messages. Custom error types are allowed — implement `IError` directly or extend the built-in `Error` record. Built-in errors (`ValidationError`, `BusinessRuleError`, `ConflictError`, `NotFoundError`, `InfrastructureError`) cover the common cases.
+
 ## Diagnostics
 
 | Code | Severity | Meaning |

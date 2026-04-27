@@ -73,7 +73,7 @@ public sealed class OrderChainTests
         failingResult.IsDomainFailure.Should().BeTrue();
         failingResult.Match(
             success: _ => "should not be success",
-            failure: errs => errs[0].Code).Should().Be("PLACEMENT_REJECTED");
+            failure: errs => errs[0].ErrorCode).Should().Be("PLACEMENT_REJECTED");
 
         // OrderCreated was raised by the successful Create step before PlaceOrder's handler failed.
         failingResult.ProducedEvents.Should().ContainSingle(e => e is OrderCreated);
@@ -91,7 +91,7 @@ public sealed class OrderChainTests
             .ExecuteAsync(sp);
 
         result.IsDomainFailure.Should().BeTrue();
-        result.Match(_ => "ok", errs => errs[0].Code).Should().Be("CUSTOMER_BANNED");
+        result.Match(_ => "ok", errs => errs[0].ErrorCode).Should().Be("CUSTOMER_BANNED");
         // No events should have been produced — pre-processor blocked Create before aggregate method ran.
         result.ProducedEvents.Should().BeEmpty();
     }
@@ -110,7 +110,7 @@ public sealed class OrderChainTests
             success: _ => (Error)new ValidationError("unexpected", "chain should have failed", ""),
             failure: errs => errs[0]);
         error.Should().BeOfType<ValidationError>()
-            .Which.Code.Should().Be("ORDER_CUSTOMER_REQUIRED");
+            .Which.ErrorCode.Should().Be("ORDER_CUSTOMER_REQUIRED");
     }
 
     [Fact]
@@ -156,7 +156,7 @@ public sealed class OrderChainTests
     public async Task OnError_FiresOnDomainFailure_WithExactErrorList()
     {
         var sp = BuildServices();
-        IReadOnlyList<Error>? captured = null;
+        IReadOnlyList<IError>? captured = null;
 
         var result = await OrdersApi
             .Create(new OrderDto("", 100m, "USD"))
@@ -166,7 +166,7 @@ public sealed class OrderChainTests
 
         result.IsDomainFailure.Should().BeTrue();
         captured.Should().NotBeNull();
-        captured![0].Code.Should().Be("ORDER_CUSTOMER_REQUIRED");
+        captured![0].ErrorCode.Should().Be("ORDER_CUSTOMER_REQUIRED");
     }
 
     [Fact]

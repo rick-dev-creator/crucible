@@ -94,7 +94,7 @@ public sealed class DefaultChainExecutorTests
     [Fact]
     public async Task OnErrorStep_FiresWhenChainFails()
     {
-        IReadOnlyList<Error>? capturedErrors = null;
+        IReadOnlyList<IError>? capturedErrors = null;
         var plan = new ChainPlan<A, TId>();
         AddStepToPlan(plan, new FakeStep("init", StepKind.AggregateMethod, _ =>
             StepOutcome.Failure(new[] { (Error)new ValidationError("E", "boom") })));
@@ -106,7 +106,7 @@ public sealed class DefaultChainExecutorTests
 
         result.IsDomainFailure.Should().BeTrue();
         capturedErrors.Should().NotBeNull();
-        capturedErrors![0].Code.Should().Be("E");
+        capturedErrors![0].ErrorCode.Should().Be("E");
     }
 
     [Fact]

@@ -65,14 +65,14 @@ public sealed class ChainResultTests
         var r = ChainResult<int>.Exceptional(new InvalidOperationException("boom"), NoEvents);
         var translated = r.Catch(ex => new[] { (Error)new InfrastructureError("X", ex.Message) });
         translated.IsDomainFailure.Should().BeTrue();
-        translated.Match(_ => "ok", errs => errs[0].Code).Should().Be("X");
+        translated.Match(_ => "ok", errs => errs[0].ErrorCode).Should().Be("X");
     }
 
     [Fact]
     public void Catch_OnSuccess_IsNoOp()
     {
         var r = ChainResult<int>.Success(1, NoEvents);
-        var afterCatch = r.Catch(_ => Array.Empty<Error>());
+        var afterCatch = r.Catch(_ => Array.Empty<IError>());
         afterCatch.IsSuccess.Should().BeTrue();
     }
 

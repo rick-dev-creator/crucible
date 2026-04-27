@@ -122,6 +122,6 @@ public sealed class ReconstructTests
             .ExecuteAsync(sp);
 
         result.IsDomainFailure.Should().BeTrue();
-        result.Match(_ => "ok", errs => errs[0].Code).Should().Be("ORDER_NOT_PLACED");
+        result.Match(_ => "ok", errs => errs[0].ErrorCode).Should().Be("ORDER_NOT_PLACED");
     }
 }

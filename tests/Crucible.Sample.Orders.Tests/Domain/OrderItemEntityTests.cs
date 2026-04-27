@@ -51,6 +51,6 @@ public sealed class OrderItemEntityTests
         var item = new OrderItem(OrderItemId.New(), "SKU-1", 1, new Money(10m, "USD"));
         var result = item.UpdateQuantity(0);
         result.IsFailure.Should().BeTrue();
-        result.Errors[0].Code.Should().Be("ITEM_QTY_POSITIVE");
+        result.Errors[0].ErrorCode.Should().Be("ITEM_QTY_POSITIVE");
     }
 }

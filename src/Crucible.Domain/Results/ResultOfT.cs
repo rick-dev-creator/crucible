@@ -4,12 +4,12 @@ namespace Crucible.Domain.Results;
 
 public readonly struct Result<T>
 {
-    private static readonly IReadOnlyList<Error> EmptyErrors = Array.Empty<Error>();
+    private static readonly IReadOnlyList<IError> EmptyErrors = Array.Empty<IError>();
 
     private readonly T? _value;
-    private readonly IReadOnlyList<Error>? _errors;
+    private readonly IReadOnlyList<IError>? _errors;
 
-    private Result(T? value, IReadOnlyList<Error>? errors)
+    private Result(T? value, IReadOnlyList<IError>? errors)
     {
         _value = value;
         _errors = errors;
@@ -22,13 +22,13 @@ public readonly struct Result<T>
         ? _value!
         : throw new InvalidOperationException("Result is in a failure state; access Errors instead.");
 
-    public IReadOnlyList<Error> Errors => _errors ?? EmptyErrors;
+    public IReadOnlyList<IError> Errors => _errors ?? EmptyErrors;
 
     public static Result<T> Success(T value) => new(value, null);
-    public static Result<T> Failure(params Error[] errors) => new(default, errors);
-    public static Result<T> Failure(IReadOnlyList<Error> errors) => new(default, errors);
+    public static Result<T> Failure(params IError[] errors) => new(default, errors);
+    public static Result<T> Failure(IReadOnlyList<IError> errors) => new(default, errors);
 
-    public TOut Match<TOut>(Func<T, TOut> success, Func<IReadOnlyList<Error>, TOut> failure)
+    public TOut Match<TOut>(Func<T, TOut> success, Func<IReadOnlyList<IError>, TOut> failure)
         => IsSuccess ? success(_value!) : failure(_errors!);
 
     public static implicit operator Result<T>(T value) => Success(value);

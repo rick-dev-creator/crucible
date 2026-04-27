@@ -42,7 +42,7 @@ public sealed class ErrorTests
     public void Error_BaseHasUnspecifiedKindByDefault()
     {
         Error e = new ValidationError("C", "m");
-        e.Code.Should().Be("C");
-        e.Message.Should().Be("m");
+        e.ErrorCode.Should().Be("C");
+        e.ErrorDescription.Should().Be("m");
     }
 }

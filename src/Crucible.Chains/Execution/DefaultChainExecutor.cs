@@ -79,7 +79,7 @@ public sealed class DefaultChainExecutor : IChainExecutor
 
     private static async Task InvokeOnErrorStepsAsync<TAggregate, TId>(
         ChainPlan<TAggregate, TId> plan,
-        IReadOnlyList<Crucible.Domain.Errors.Error> errors,
+        IReadOnlyList<Crucible.Domain.Errors.IError> errors,
         IServiceProvider services,
         CancellationToken ct)
         where TAggregate : AggregateRoot<TId>

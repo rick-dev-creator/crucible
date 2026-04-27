@@ -15,8 +15,8 @@ public interface IChainStage<TAggregate, TId, TState>
 
     IChainStage<TAggregate, TId, TState> Tap(Action<TState> action);
     IChainStage<TAggregate, TId, TState> Tap(Func<TState, IServiceProvider, CancellationToken, Task> action);
-    IChainStage<TAggregate, TId, TState> OnError(Action<IReadOnlyList<Error>> action);
-    IChainStage<TAggregate, TId, TState> OnError(Func<IReadOnlyList<Error>, IServiceProvider, CancellationToken, Task> action);
+    IChainStage<TAggregate, TId, TState> OnError(Action<IReadOnlyList<IError>> action);
+    IChainStage<TAggregate, TId, TState> OnError(Func<IReadOnlyList<IError>, IServiceProvider, CancellationToken, Task> action);
     IChainStage<TAggregate, TId, TState> ProducedEvents(Action<IReadOnlyList<IDomainEvent>> callback, bool drain = true);
     IChainStage<TAggregate, TId, TState> DispatchEvents();
 
@@ -36,10 +36,10 @@ internal sealed class ChainStageImpl<TAggregate, TId, TState> : IChainStage<TAgg
     public IChainStage<TAggregate, TId, TState> Tap(Func<TState, IServiceProvider, CancellationToken, Task> action)
         => ChainBuilder.AppendStep<TAggregate, TId, TState, TState>(this, new TapStep<TAggregate, TId, TState>(action));
 
-    public IChainStage<TAggregate, TId, TState> OnError(Action<IReadOnlyList<Error>> action)
+    public IChainStage<TAggregate, TId, TState> OnError(Action<IReadOnlyList<IError>> action)
         => ChainBuilder.AppendStep<TAggregate, TId, TState, TState>(this, new OnErrorStep<TAggregate, TId>(action));
 
-    public IChainStage<TAggregate, TId, TState> OnError(Func<IReadOnlyList<Error>, IServiceProvider, CancellationToken, Task> action)
+    public IChainStage<TAggregate, TId, TState> OnError(Func<IReadOnlyList<IError>, IServiceProvider, CancellationToken, Task> action)
         => ChainBuilder.AppendStep<TAggregate, TId, TState, TState>(this, new OnErrorStep<TAggregate, TId>(action));
 
     public IChainStage<TAggregate, TId, TState> ProducedEvents(Action<IReadOnlyList<IDomainEvent>> callback, bool drain = true)

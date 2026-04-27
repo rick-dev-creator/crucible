@@ -33,7 +33,7 @@ public sealed class OrderAggregateTests
         var result = order.Create(ValidDto(""));
 
         result.IsFailure.Should().BeTrue();
-        result.Errors.Should().ContainSingle(e => e.Code == "ORDER_CUSTOMER_REQUIRED");
+        result.Errors.Should().ContainSingle(e => e.ErrorCode == "ORDER_CUSTOMER_REQUIRED");
         result.Errors[0].Should().BeOfType<ValidationError>();
     }
 
@@ -45,7 +45,7 @@ public sealed class OrderAggregateTests
         var result = order.Create(new OrderDto("C-1", 0m, "USD"));
 
         result.IsFailure.Should().BeTrue();
-        result.Errors.Should().ContainSingle(e => e.Code == "ORDER_AMOUNT_POSITIVE");
+        result.Errors.Should().ContainSingle(e => e.ErrorCode == "ORDER_AMOUNT_POSITIVE");
     }
 
     [Fact]
@@ -86,7 +86,7 @@ public sealed class OrderAggregateTests
         var result = order.PlaceOrder(new ShippingOptions("FedEx", 1));
 
         result.IsFailure.Should().BeTrue();
-        result.Errors.Should().ContainSingle(e => e.Code == "ORDER_NOT_DRAFT");
+        result.Errors.Should().ContainSingle(e => e.ErrorCode == "ORDER_NOT_DRAFT");
         result.Errors[0].Should().BeOfType<BusinessRuleError>();
     }
 
@@ -125,7 +125,7 @@ public sealed class OrderAggregateTests
         var result = order.UpdateOrderInventory();
 
         result.IsFailure.Should().BeTrue();
-        result.Errors.Should().ContainSingle(e => e.Code == "ORDER_NOT_PLACED");
+        result.Errors.Should().ContainSingle(e => e.ErrorCode == "ORDER_NOT_PLACED");
     }
 
     [Fact]

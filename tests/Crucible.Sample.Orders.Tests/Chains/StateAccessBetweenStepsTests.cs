@@ -176,7 +176,7 @@ public sealed class StateAccessBetweenStepsTests
         // OnError is registered between two steps. When a step fails, the executor
         // walks the plan and invokes any OnError callbacks with the failure's errors.
         var sp = BuildServices();
-        IReadOnlyList<Error>? observed = null;
+        IReadOnlyList<IError>? observed = null;
 
         var result = await OrdersApi
             .Create(new OrderDto("", 100m, "USD"))  // empty CustomerId — Create fails
@@ -186,7 +186,7 @@ public sealed class StateAccessBetweenStepsTests
 
         result.IsDomainFailure.Should().BeTrue();
         observed.Should().NotBeNull();
-        observed!.Should().ContainSingle(e => e.Code == "ORDER_CUSTOMER_REQUIRED");
+        observed!.Should().ContainSingle(e => e.ErrorCode == "ORDER_CUSTOMER_REQUIRED");
         observed![0].Should().BeAssignableTo<ValidationError>();
     }
 

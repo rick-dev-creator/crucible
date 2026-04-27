@@ -7,7 +7,7 @@ public static class ChainResultTaskExtensions
     public static async Task<TOut> Match<T, TOut>(
         this Task<ChainResult<T>> task,
         Func<T, TOut> success,
-        Func<IReadOnlyList<Error>, TOut> failure)
+        Func<IReadOnlyList<IError>, TOut> failure)
     {
         var result = await task.ConfigureAwait(false);
         return result.Match(success, failure);
@@ -15,7 +15,7 @@ public static class ChainResultTaskExtensions
 
     public static async Task<ChainResult<T>> Catch<T>(
         this Task<ChainResult<T>> task,
-        Func<Exception, IReadOnlyList<Error>> handler)
+        Func<Exception, IReadOnlyList<IError>> handler)
     {
         var result = await task.ConfigureAwait(false);
         return result.Catch(handler);
