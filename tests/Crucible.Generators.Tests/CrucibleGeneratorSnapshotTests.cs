@@ -27,6 +27,79 @@ public sealed class CrucibleGeneratorSnapshotTests
         diags.Should().Contain(d => d.Id == "CRC001");
     }
 
+    [Fact]
+    public void EmitsCRC002_WhenMultipleEntrySteps()
+    {
+        // Mark both methods Entry=true
+        var src = OrderAggregateInput.Source.Replace(
+            "[Step(Order = 2)]",
+            "[Step(Order = 2, Entry = true)]");
+        var driver = RunGenerator(src);
+        driver.GetRunResult().Diagnostics.Should().Contain(d => d.Id == "CRC002");
+    }
+
+    [Fact]
+    public void EmitsCRC003_WhenDuplicateOrder()
+    {
+        var src = OrderAggregateInput.Source.Replace(
+            "[Step(Order = 2)]",
+            "[Step(Order = 1)]");
+        var driver = RunGenerator(src);
+        driver.GetRunResult().Diagnostics.Should().Contain(d => d.Id == "CRC003");
+    }
+
+    [Fact]
+    public void EmitsCRC004_WhenOrderGap()
+    {
+        var src = OrderAggregateInput.Source.Replace(
+            "[Step(Order = 2)]",
+            "[Step(Order = 3)]");
+        var driver = RunGenerator(src);
+        driver.GetRunResult().Diagnostics.Should().Contain(d => d.Id == "CRC004");
+    }
+
+    [Fact]
+    public void EmitsCRC005_WhenAggregateNotPartial()
+    {
+        var src = OrderAggregateInput.Source.Replace(
+            "public partial class Order",
+            "public class Order");
+        var driver = RunGenerator(src);
+        driver.GetRunResult().Diagnostics.Should().Contain(d => d.Id == "CRC005");
+    }
+
+    [Fact]
+    public void EmitsCRC007_WhenStepReturnsNonResult()
+    {
+        var src = OrderAggregateInput.Source.Replace(
+            "public Result<OrderCreated> Create(OrderDto dto)",
+            "public int Create(OrderDto dto)").Replace(
+            "Id = OrderId.New();\n        Raise(new OrderCreated(Id));\n        return new OrderCreated(Id);",
+            "Id = OrderId.New();\n        Raise(new OrderCreated(Id));\n        return 0;");
+        var driver = RunGenerator(src);
+        driver.GetRunResult().Diagnostics.Should().Contain(d => d.Id == "CRC007");
+    }
+
+    [Fact]
+    public void EmitsCRC008_WhenStepIsAsync()
+    {
+        var src = OrderAggregateInput.Source.Replace(
+            "public Result<OrderCreated> Create(OrderDto dto)",
+            "public async System.Threading.Tasks.Task<Result<OrderCreated>> Create(OrderDto dto)").Replace(
+            "Id = OrderId.New();\n        Raise(new OrderCreated(Id));\n        return new OrderCreated(Id);",
+            "await System.Threading.Tasks.Task.Yield();\n        Id = OrderId.New();\n        Raise(new OrderCreated(Id));\n        return new OrderCreated(Id);");
+        var driver = RunGenerator(src);
+        driver.GetRunResult().Diagnostics.Should().Contain(d => d.Id == "CRC008");
+    }
+
+    [Fact]
+    public void EmitsCRC100_WhenStepHasNoHandler()
+    {
+        // Base fixture has no handlers in scope; CRC100 should fire for both steps.
+        var driver = RunGenerator(OrderAggregateInput.Source);
+        driver.GetRunResult().Diagnostics.Should().Contain(d => d.Id == "CRC100");
+    }
+
     private static CSharpGeneratorDriver RunGenerator(string source)
     {
         var parseOptions = new CSharpParseOptions(LanguageVersion.Preview);
