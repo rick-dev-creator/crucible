@@ -44,8 +44,6 @@ public sealed class CrucibleGenerator : IIncrementalGenerator
 
             EntryEmitter.Emit(cb, model);
             cb.Line();
-            PhaseEmitter.Emit(cb, model);
-            cb.Line();
             ExtensionEmitter.Emit(cb, model);
             cb.Line();
             StepEmitter.Emit(cb, model);

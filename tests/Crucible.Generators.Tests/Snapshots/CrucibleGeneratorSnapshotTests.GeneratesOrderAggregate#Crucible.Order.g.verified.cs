@@ -6,66 +6,23 @@ namespace Sample;
 
 public static class Orders
 {
-    public static IOrderAfterCreate Create(Sample.OrderDto dto)
+    public static global::Crucible.Chains.Stages.IChainStage<global::Sample.Order, Sample.OrderId, Sample.OrderCreated> Create(Sample.OrderDto dto)
     {
-        return (IOrderAfterCreate)global::Crucible.Chains.Stages.ChainBuilder.Begin<global::Sample.Order, Sample.OrderId, Sample.OrderCreated>(new __Step_Create(dto));
+        return global::Crucible.Chains.Stages.ChainBuilder.Begin<global::Sample.Order, Sample.OrderId, Sample.OrderCreated>(new __Step_Create(dto));
     }
 }
 
-public interface IOrderAfterCreate : global::Crucible.Chains.Stages.IChainStage<global::Sample.Order, Sample.OrderId, Sample.OrderCreated> { }
-public interface IOrderAfterPlaceOrder : global::Crucible.Chains.Stages.IChainStage<global::Sample.Order, Sample.OrderId, Sample.OrderPlaced> { }
-
 public static class OrderChainExtensions
 {
-    extension(IOrderAfterCreate stage)
+    extension(global::Crucible.Chains.Stages.IChainStage<global::Sample.Order, Sample.OrderId, Sample.OrderCreated> stage)
     {
-        public IOrderAfterPlaceOrder PlaceOrder()
+        public global::Crucible.Chains.Stages.IChainStage<global::Sample.Order, Sample.OrderId, Sample.OrderPlaced> PlaceOrder()
         {
-            return (IOrderAfterPlaceOrder)global::Crucible.Chains.Stages.ChainBuilder.AppendStep<global::Sample.Order, Sample.OrderId, Sample.OrderCreated, Sample.OrderPlaced>(stage, new __Step_PlaceOrder());
-        }
-        public IOrderAfterCreate Tap(global::System.Action<Sample.OrderCreated> action)
-        {
-            return (IOrderAfterCreate)stage.Tap(action);
-        }
-        public IOrderAfterCreate Tap(global::System.Func<Sample.OrderCreated, global::System.IServiceProvider, global::System.Threading.CancellationToken, global::System.Threading.Tasks.Task> action)
-        {
-            return (IOrderAfterCreate)stage.Tap(action);
-        }
-        public IOrderAfterCreate OnError(global::System.Action<global::System.Collections.Generic.IReadOnlyList<global::Crucible.Domain.Errors.Error>> action)
-        {
-            return (IOrderAfterCreate)stage.OnError(action);
-        }
-        public IOrderAfterCreate ProducedEvents(global::System.Action<global::System.Collections.Generic.IReadOnlyList<global::Crucible.Domain.Events.IDomainEvent>> callback, bool drain = true)
-        {
-            return (IOrderAfterCreate)stage.ProducedEvents(callback, drain);
-        }
-        public IOrderAfterCreate DispatchEvents()
-        {
-            return (IOrderAfterCreate)stage.DispatchEvents();
+            return global::Crucible.Chains.Stages.ChainBuilder.AppendStep<global::Sample.Order, Sample.OrderId, Sample.OrderCreated, Sample.OrderPlaced>(stage, new __Step_PlaceOrder());
         }
     }
-    extension(IOrderAfterPlaceOrder stage)
+    extension(global::Crucible.Chains.Stages.IChainStage<global::Sample.Order, Sample.OrderId, Sample.OrderPlaced> stage)
     {
-        public IOrderAfterPlaceOrder Tap(global::System.Action<Sample.OrderPlaced> action)
-        {
-            return (IOrderAfterPlaceOrder)stage.Tap(action);
-        }
-        public IOrderAfterPlaceOrder Tap(global::System.Func<Sample.OrderPlaced, global::System.IServiceProvider, global::System.Threading.CancellationToken, global::System.Threading.Tasks.Task> action)
-        {
-            return (IOrderAfterPlaceOrder)stage.Tap(action);
-        }
-        public IOrderAfterPlaceOrder OnError(global::System.Action<global::System.Collections.Generic.IReadOnlyList<global::Crucible.Domain.Errors.Error>> action)
-        {
-            return (IOrderAfterPlaceOrder)stage.OnError(action);
-        }
-        public IOrderAfterPlaceOrder ProducedEvents(global::System.Action<global::System.Collections.Generic.IReadOnlyList<global::Crucible.Domain.Events.IDomainEvent>> callback, bool drain = true)
-        {
-            return (IOrderAfterPlaceOrder)stage.ProducedEvents(callback, drain);
-        }
-        public IOrderAfterPlaceOrder DispatchEvents()
-        {
-            return (IOrderAfterPlaceOrder)stage.DispatchEvents();
-        }
     }
 }
 
