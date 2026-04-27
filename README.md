@@ -549,7 +549,9 @@ This is built on close to **two decades of C# work** and a long list of enterpri
 
 ### The LLM amplifier
 
-After using LLMs for code daily, a pattern became impossible to ignore: **LLMs amplify the developer using them, in both directions**. A senior who knows what to ask for and reviews carefully gets faster and more consistent output. A junior who treats LLM output as authoritative ships subtly broken code at five times the speed.
+I have used LLMs for code almost daily for over a year — partly to learn, partly to **test the productivity claims** executives keep repeating. The honest answer is mixed. LLMs do produce. They help. With strong foundations and concrete knowledge of what you're building, they make a senior measurably more productive.
+
+Without those foundations, the picture flips. **LLMs amplify the developer using them, in both directions.** A senior who knows what to ask for and reviews carefully gets faster and more consistent output. A junior who treats LLM output as authoritative ships subtly broken code at five times the speed.
 
 In practice on enterprise codebases, the negative amplification has been **more visible than the positive**. LLMs reliably:
 
@@ -560,6 +562,8 @@ In practice on enterprise codebases, the negative amplification has been **more 
 - and output with a confidence level that doesn't match their actual correctness.
 
 The end result is an agent that behaves like a junior with very fast hands and **dangerous self-assurance** — the kind an inexperienced developer reads as authority and accepts blindly. A team with strong reviewers can absorb that drift. A team without strong reviewers ships it.
+
+The technical debt then compounds fast. Without solid foundations, an LLM-heavy codebase will end up **worse than the microservices wave** of the late 2010s — when teams were sold a design as universal best practice, applied it to problems it didn't fit, and spent years unwinding the result. The pattern is the same: an attractive-sounding answer (microservices then, "LLM productivity" now) applied without the judgment to know when it fits, with the bill arriving years later in maintenance and rewrites.
 
 That is the second motivation for this framework. Documentation, system prompts, code review, and lint rules all assume someone reads and follows them. **None of those assumptions hold reliably with LLMs in the loop.** What does hold is the compiler. Code that doesn't compile cannot be merged regardless of who (or what) wrote it. Crucible's bet is that the cheapest place to enforce DDD discipline in an LLM-collaborative team is the type system, not the review process.
 
