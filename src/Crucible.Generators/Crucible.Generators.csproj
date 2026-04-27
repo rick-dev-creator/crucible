@@ -10,6 +10,8 @@
     <IncludeBuildOutput>false</IncludeBuildOutput>
     <Nullable>enable</Nullable>
     <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
+    <!-- NU5017: NuGet's pack target doesn't recognize analyzer DLLs (added via <None Pack="true">) as content. The package IS valid (verified by inspecting the .nupkg). -->
+    <NoWarn>$(NoWarn);NU5017</NoWarn>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp" PrivateAssets="all" />
