@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <IsPackable>true</IsPackable>
+    <PackageId>Crucible.Chains</PackageId>
+    <Description>Crucible chain runtime: typestate fluent execution, behaviors, hooks, event dispatch.</Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Crucible.Domain\Crucible.Domain.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
+  </ItemGroup>
+</Project>
