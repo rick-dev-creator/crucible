@@ -9,5 +9,5 @@ public abstract class Entity<TId> : IEquatable<Entity<TId>>
 
     public override bool Equals(object? obj) => obj is Entity<TId> e && Equals(e);
 
-    public override int GetHashCode() => Id is null ? 0 : Id.GetHashCode();
+    public override int GetHashCode() => Id!.GetHashCode();
 }
