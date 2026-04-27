@@ -12,7 +12,7 @@ public static class ChainBuilder
         where TAggregate : AggregateRoot<TId>
         where TId : IAggregateId<TId>
     {
-        ((ChainStageImpl<TAggregate, TId, TPrevState>)stage).Plan.Add(step);
+        stage.Plan.Add(step);
 
         if (typeof(TPrevState) == typeof(TNextState))
         {
