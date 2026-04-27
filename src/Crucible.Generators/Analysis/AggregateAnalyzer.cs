@@ -58,6 +58,7 @@ internal static class AggregateAnalyzer
         }
 
         ValidateStepOrders(steps, syntax, className, diagnostics);
+        ValidateNoPublicConstructors(classSymbol, syntax, className, diagnostics);
 
         var entryCount = steps.Count(s => s.IsEntry);
         if (entryCount == 0)
@@ -309,6 +310,28 @@ internal static class AggregateAnalyzer
         }
 
         return (candidates[0].Name, null);
+    }
+
+    private static void ValidateNoPublicConstructors(
+        INamedTypeSymbol classSymbol,
+        ClassDeclarationSyntax syntax,
+        string className,
+        List<Diagnostic> diagnostics)
+    {
+        foreach (var ctor in classSymbol.InstanceConstructors)
+        {
+            if (ctor.DeclaredAccessibility != Accessibility.Public) continue;
+
+            // For implicit (compiler-synthesized) ctors, point at the class identifier.
+            // For explicit ctors, point at the ctor's own location.
+            var location = ctor.IsImplicitlyDeclared
+                ? syntax.Identifier.GetLocation()
+                : ctor.Locations.FirstOrDefault() ?? syntax.Identifier.GetLocation();
+            diagnostics.Add(Diagnostic.Create(
+                CrucibleDiagnostics.AggregateCtorMustNotBePublic,
+                location,
+                className));
+        }
     }
 
     private static string Pluralize(string s)

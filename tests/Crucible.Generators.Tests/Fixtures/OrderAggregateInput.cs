@@ -24,6 +24,8 @@ public sealed record OrderPlaced(OrderId Id) : DomainEvent;
 [Aggregate]
 public partial class Order : AggregateRoot<OrderId>
 {
+    private Order() { }
+
     [Step(Order = 1, Entry = true)]
     public Result<OrderCreated> Create(OrderDto dto)
     {

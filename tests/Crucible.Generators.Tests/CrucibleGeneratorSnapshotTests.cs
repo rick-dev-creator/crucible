@@ -139,7 +139,7 @@ public readonly record struct OrderItemId(System.Guid Value);
 public partial class OrderItem : Crucible.Domain.Aggregates.Entity<OrderItemId>
 {
     public string Sku { get; private set; } = """";
-    public OrderItem() { }
+    private OrderItem() { }
 }").Replace(
             "[Aggregate]\npublic partial class Order : AggregateRoot<OrderId>\n{",
             @"[Aggregate]
@@ -151,6 +151,33 @@ public partial class Order : AggregateRoot<OrderId>
 
         var driver = RunGenerator(src);
         return Verifier.Verify(driver).UseDirectory("Snapshots").UseMethodName("EmitsEntitySnapshot_AndAggregateReferencesIt");
+    }
+
+    [Fact]
+    public void EmitsCRC011_WhenAggregateHasPublicConstructor()
+    {
+        // Inject an explicit public parameterless ctor.
+        var src = OrderAggregateInput.Source.Replace(
+            "private Order() { }",
+            "public Order() { }");
+        var driver = RunGenerator(src);
+        driver.GetRunResult().Diagnostics.Should().Contain(d => d.Id == "CRC011");
+    }
+
+    [Fact]
+    public void EmitsCRC305_WhenEntityHasPublicConstructor()
+    {
+        var src = OrderAggregateInput.Source.Replace(
+            "public sealed record OrderDto(string CustomerId);",
+            @"public sealed record OrderDto(string CustomerId);
+
+[Crucible.Domain.Attributes.Entity]
+public partial class BadEntity : Crucible.Domain.Aggregates.Entity<System.Guid>
+{
+    public BadEntity() { }
+}");
+        var driver = RunGenerator(src);
+        driver.GetRunResult().Diagnostics.Should().Contain(d => d.Id == "CRC305");
     }
 
     private static CSharpGeneratorDriver RunGenerator(string source)

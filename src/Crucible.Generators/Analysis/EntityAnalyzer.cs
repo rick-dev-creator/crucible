@@ -32,6 +32,8 @@ internal static class EntityAnalyzer
             diagnostics.Add(Diagnostic.Create(CrucibleDiagnostics.EntityNoParameterlessCtor, syntax.Identifier.GetLocation(), className));
         }
 
+        ValidateNoPublicConstructors(classSymbol, syntax, className, diagnostics);
+
         if (diagnostics.Any(d => d.Severity == DiagnosticSeverity.Error))
             return new EntityAnalysisResult(null, diagnostics);
 
@@ -41,6 +43,25 @@ internal static class EntityAnalyzer
         return new EntityAnalysisResult(
             new EntityModel(ns, className, idType ?? "global::System.Guid", properties),
             diagnostics);
+    }
+
+    private static void ValidateNoPublicConstructors(
+        INamedTypeSymbol classSymbol,
+        ClassDeclarationSyntax syntax,
+        string className,
+        System.Collections.Generic.List<Diagnostic> diagnostics)
+    {
+        foreach (var ctor in classSymbol.InstanceConstructors)
+        {
+            if (ctor.DeclaredAccessibility != Accessibility.Public) continue;
+            var location = ctor.IsImplicitlyDeclared
+                ? syntax.Identifier.GetLocation()
+                : ctor.Locations.FirstOrDefault() ?? syntax.Identifier.GetLocation();
+            diagnostics.Add(Diagnostic.Create(
+                CrucibleDiagnostics.EntityCtorMustNotBePublic,
+                location,
+                className));
+        }
     }
 
     private static string? ResolveIdType(INamedTypeSymbol cls)

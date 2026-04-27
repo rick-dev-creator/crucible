@@ -12,9 +12,9 @@ public partial class OrderItem : Entity<OrderItemId>
     public int Quantity { get; private set; }
     public Money UnitPrice { get; private set; } = Money.Zero("USD");
 
-    public OrderItem() { }  // for hydration
+    private OrderItem() { }
 
-    public OrderItem(OrderItemId id, string sku, int qty, Money price)
+    internal OrderItem(OrderItemId id, string sku, int qty, Money price)
     {
         Id = id;
         ProductSku = sku;

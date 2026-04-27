@@ -15,7 +15,7 @@ public sealed class OrderAggregateTests
     [Fact]
     public void Create_WithValidDto_SetsIdAndCustomerAndDraftStatus()
     {
-        var order = new Order();
+        var order = Order.__CreateForChain();
 
         var result = order.Create(ValidDto("C-100"));
 
@@ -28,7 +28,7 @@ public sealed class OrderAggregateTests
     [Fact]
     public void Create_WithEmptyCustomerId_ReturnsValidationError()
     {
-        var order = new Order();
+        var order = Order.__CreateForChain();
 
         var result = order.Create(ValidDto(""));
 
@@ -40,7 +40,7 @@ public sealed class OrderAggregateTests
     [Fact]
     public void Create_WithNonPositiveAmount_ReturnsValidationError()
     {
-        var order = new Order();
+        var order = Order.__CreateForChain();
 
         var result = order.Create(new OrderDto("C-1", 0m, "USD"));
 
@@ -51,7 +51,7 @@ public sealed class OrderAggregateTests
     [Fact]
     public void Create_RaisesOrderCreatedEventWithMatchingTotal()
     {
-        var order = new Order();
+        var order = Order.__CreateForChain();
 
         order.Create(new OrderDto("C-1", 250m, "EUR"));
 
@@ -66,7 +66,7 @@ public sealed class OrderAggregateTests
     [Fact]
     public void PlaceOrder_OnDraftOrder_TransitionsToPlacedAndRecordsCarrier()
     {
-        var order = new Order();
+        var order = Order.__CreateForChain();
         order.Create(ValidDto());
 
         var result = order.PlaceOrder(new ShippingOptions("UPS", 2));
@@ -79,7 +79,7 @@ public sealed class OrderAggregateTests
     [Fact]
     public void PlaceOrder_OnAlreadyPlacedOrder_ReturnsBusinessRuleError()
     {
-        var order = new Order();
+        var order = Order.__CreateForChain();
         order.Create(ValidDto());
         order.PlaceOrder(new ShippingOptions("UPS", 2));
 
@@ -93,7 +93,7 @@ public sealed class OrderAggregateTests
     [Fact]
     public void PlaceOrder_RaisesOrderPlacedEventInAdditionToOrderCreated()
     {
-        var order = new Order();
+        var order = Order.__CreateForChain();
         order.Create(ValidDto());
 
         order.PlaceOrder(new ShippingOptions("DHL", 3));
@@ -106,7 +106,7 @@ public sealed class OrderAggregateTests
     [Fact]
     public void UpdateOrderInventory_OnPlacedOrder_TransitionsToInventoryReserved()
     {
-        var order = new Order();
+        var order = Order.__CreateForChain();
         order.Create(ValidDto());
         order.PlaceOrder(new ShippingOptions("UPS", 2));
 
@@ -119,7 +119,7 @@ public sealed class OrderAggregateTests
     [Fact]
     public void UpdateOrderInventory_OnDraftOrder_ReturnsBusinessRuleError()
     {
-        var order = new Order();
+        var order = Order.__CreateForChain();
         order.Create(ValidDto());
 
         var result = order.UpdateOrderInventory();
@@ -131,7 +131,7 @@ public sealed class OrderAggregateTests
     [Fact]
     public void PendingEvents_PreservesChronologicalOrderAcrossMultipleMethods()
     {
-        var order = new Order();
+        var order = Order.__CreateForChain();
 
         order.Create(ValidDto());
         order.PlaceOrder(new ShippingOptions("UPS", 2));

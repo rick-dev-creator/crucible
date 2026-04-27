@@ -12,6 +12,8 @@ public interface IOrderSnapshot
 
 public partial class Order
 {
+    internal static global::Sample.Order __CreateForChain() => new global::Sample.Order();
+
     internal void __HydrateFromSnapshot(IOrderSnapshot snapshot)
     {
         Id = snapshot.Id;
@@ -57,7 +59,7 @@ internal sealed class __Step_Create : global::Crucible.Chains.Steps.IStep<global
     public string Name => "Order.Create";
     public async global::System.Threading.Tasks.Task<global::Crucible.Chains.Steps.StepOutcome> InvokeAsync(global::Crucible.Chains.Steps.StepContext<global::Sample.Order, Sample.OrderId> ctx, global::System.Threading.CancellationToken ct)
     {
-        ctx.Aggregate = new global::Sample.Order();
+        ctx.Aggregate = global::Sample.Order.__CreateForChain();
         var aggregate = ctx.Aggregate ?? throw new global::System.InvalidOperationException("Aggregate is null");
         var domainResult = aggregate.Create(this._dto);
         if (domainResult.IsFailure) return global::Crucible.Chains.Steps.StepOutcome.Failure(domainResult.Errors);
@@ -85,7 +87,7 @@ internal sealed class __Step_ReconstructAtCreate : global::Crucible.Chains.Steps
     public string Name => "Order.ReconstructAtCreate";
     public global::System.Threading.Tasks.Task<global::Crucible.Chains.Steps.StepOutcome> InvokeAsync(global::Crucible.Chains.Steps.StepContext<global::Sample.Order, Sample.OrderId> ctx, global::System.Threading.CancellationToken ct)
     {
-        var aggregate = new global::Sample.Order();
+        var aggregate = global::Sample.Order.__CreateForChain();
         aggregate.__HydrateFromSnapshot(this._snapshot);
         ctx.Aggregate = aggregate;
         return global::System.Threading.Tasks.Task.FromResult(global::Crucible.Chains.Steps.StepOutcome.Success());
@@ -99,7 +101,7 @@ internal sealed class __Step_ReconstructAtPlaceOrder : global::Crucible.Chains.S
     public string Name => "Order.ReconstructAtPlaceOrder";
     public global::System.Threading.Tasks.Task<global::Crucible.Chains.Steps.StepOutcome> InvokeAsync(global::Crucible.Chains.Steps.StepContext<global::Sample.Order, Sample.OrderId> ctx, global::System.Threading.CancellationToken ct)
     {
-        var aggregate = new global::Sample.Order();
+        var aggregate = global::Sample.Order.__CreateForChain();
         aggregate.__HydrateFromSnapshot(this._snapshot);
         ctx.Aggregate = aggregate;
         return global::System.Threading.Tasks.Task.FromResult(global::Crucible.Chains.Steps.StepOutcome.Success());

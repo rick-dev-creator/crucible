@@ -86,4 +86,14 @@ internal static class CrucibleDiagnostics
         "CRC304", "Multiple candidate backing fields for entity collection",
         "Aggregate '{0}' has multiple fields of type List<{2}>; cannot determine which backs property '{1}'",
         Category, DiagnosticSeverity.Error, true, helpLinkUri: DocBase + "CRC304");
+
+    public static readonly DiagnosticDescriptor AggregateCtorMustNotBePublic = new(
+        "CRC011", "Aggregate must not have public constructors",
+        "Aggregate '{0}' must not have public constructors; aggregates are constructed only through the chain entry (e.g., Orders.Create or Orders.ReconstructAt[Step]). Use private or internal visibility.",
+        Category, DiagnosticSeverity.Error, true, helpLinkUri: DocBase + "CRC011");
+
+    public static readonly DiagnosticDescriptor EntityCtorMustNotBePublic = new(
+        "CRC305", "Entity must not have public constructors",
+        "Entity '{0}' must not have public constructors; entities are constructed by their aggregate or rehydrated via {0}.RehydrateFrom. Use private or internal visibility.",
+        Category, DiagnosticSeverity.Error, true, helpLinkUri: DocBase + "CRC305");
 }

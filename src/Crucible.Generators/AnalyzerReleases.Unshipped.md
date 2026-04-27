@@ -21,3 +21,5 @@ CRC301 | Crucible | Error | Entity must derive from Entity<TId>
 CRC302 | Crucible | Error | Entity must have a parameterless constructor
 CRC303 | Crucible | Error | No backing field found for entity collection
 CRC304 | Crucible | Error | Multiple candidate backing fields for entity collection
+CRC011 | Crucible | Error | Aggregate must not have public constructors
+CRC305 | Crucible | Error | Entity must not have public constructors

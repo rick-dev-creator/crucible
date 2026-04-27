@@ -40,7 +40,7 @@ internal static class StepEmitter
                 {
                     if (step.IsEntry)
                     {
-                        cb.Line($"ctx.Aggregate = new global::{aggFqn}();");
+                        cb.Line($"ctx.Aggregate = global::{aggFqn}.__CreateForChain();");
                     }
                     cb.Line($"var aggregate = ctx.Aggregate ?? throw new global::System.InvalidOperationException(\"Aggregate is null\");");
 
@@ -117,7 +117,7 @@ internal static class StepEmitter
             cb.Line($"public global::System.Threading.Tasks.Task<global::Crucible.Chains.Steps.StepOutcome> InvokeAsync(global::Crucible.Chains.Steps.StepContext<global::{aggFqn}, {m.IdTypeName}> ctx, global::System.Threading.CancellationToken ct)");
             using (cb.Block())
             {
-                cb.Line($"var aggregate = new global::{aggFqn}();");
+                cb.Line($"var aggregate = global::{aggFqn}.__CreateForChain();");
                 cb.Line($"aggregate.__HydrateFromSnapshot(this._snapshot);");
                 cb.Line($"ctx.Aggregate = aggregate;");
                 // No event raised; LastStepResult stays default. The TState slot is the

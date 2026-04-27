@@ -36,6 +36,8 @@ internal static class SnapshotEmitter
         cb.Line($"public partial class {m.ClassName}");
         using (cb.Block())
         {
+            cb.Line($"internal static global::{aggFqn} __CreateForChain() => new global::{aggFqn}();");
+            cb.Line();
             cb.Line($"internal void __HydrateFromSnapshot(I{m.ClassName}Snapshot snapshot)");
             using (cb.Block())
             {

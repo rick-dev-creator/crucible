@@ -11,6 +11,8 @@ namespace Crucible.Sample.Orders.Domain;
 [Aggregate]
 public partial class Order : AggregateRoot<OrderId>
 {
+    private Order() { }
+
     public string CustomerId { get; private set; } = "";
     public Money Total { get; private set; } = Money.Zero("USD");
     public OrderStatus Status { get; private set; } = OrderStatus.Draft;
