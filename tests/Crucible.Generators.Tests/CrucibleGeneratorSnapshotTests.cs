@@ -110,6 +110,22 @@ public sealed class CrucibleGeneratorSnapshotTests
         driver.GetRunResult().Diagnostics.Should().Contain(d => d.Id == "CRC100");
     }
 
+    [Fact]
+    public void EmitsCRC200_WhenPreProcessorTypeIsInvalid()
+    {
+        // Inject a class that does NOT implement IPreProcessor and reference it via [Pre<...>].
+        var src = OrderAggregateInput.Source
+            .Replace(
+                "public sealed record OrderDto(string CustomerId);",
+                "public sealed record OrderDto(string CustomerId); public sealed class BadPre { }")
+            .Replace(
+                "[Step(Order = 1, Entry = true)]",
+                "[Step(Order = 1, Entry = true)]\n    [Pre<BadPre>]");
+
+        var driver = RunGenerator(src);
+        driver.GetRunResult().Diagnostics.Should().Contain(d => d.Id == "CRC200");
+    }
+
     private static CSharpGeneratorDriver RunGenerator(string source)
     {
         var parseOptions = new CSharpParseOptions(LanguageVersion.Preview);
