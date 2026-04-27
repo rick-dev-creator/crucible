@@ -48,7 +48,7 @@ public sealed class ReconstructWithItemsTests
     {
         Id = OrderId.From(System.Guid.NewGuid()),
         CustomerId = "C-001",
-        Total = new Money(150m, "USD"),
+        Total = Money.Create(150m, "USD").Value,
         Status = status,
         Carrier = status == OrderStatus.Draft ? null : "UPS",
         Version = 4,
@@ -60,8 +60,8 @@ public sealed class ReconstructWithItemsTests
     {
         var (sp, repo) = BuildServices();
 
-        var item1 = new OrderItemRow(OrderItemId.From(System.Guid.NewGuid()), "SKU-A", 2, new Money(50m, "USD"));
-        var item2 = new OrderItemRow(OrderItemId.From(System.Guid.NewGuid()), "SKU-B", 1, new Money(50m, "USD"));
+        var item1 = new OrderItemRow(OrderItemId.From(System.Guid.NewGuid()), "SKU-A", 2, Money.Create(50m, "USD").Value);
+        var item2 = new OrderItemRow(OrderItemId.From(System.Guid.NewGuid()), "SKU-B", 1, Money.Create(50m, "USD").Value);
         var entity = MakeEntity(OrderStatus.Placed, item1, item2);
 
         var result = await OrdersApi
@@ -79,7 +79,7 @@ public sealed class ReconstructWithItemsTests
         var savedById = saved.Items.ToDictionary(i => i.Id);
         savedById[item1.Id].ProductSku.Should().Be("SKU-A");
         savedById[item1.Id].Quantity.Should().Be(2);
-        savedById[item1.Id].UnitPrice.Should().Be(new Money(50m, "USD"));
+        savedById[item1.Id].UnitPrice.Should().Be(Money.Create(50m, "USD").Value);
         savedById[item2.Id].ProductSku.Should().Be("SKU-B");
         savedById[item2.Id].Quantity.Should().Be(1);
     }
@@ -92,7 +92,7 @@ public sealed class ReconstructWithItemsTests
         var itemId = OrderItemId.From(System.Guid.NewGuid());
         var entity = MakeEntity(
             OrderStatus.Draft,
-            new OrderItemRow(itemId, "SKU-X", 5, new Money(15m, "EUR")));
+            new OrderItemRow(itemId, "SKU-X", 5, Money.Create(15m, "EUR").Value));
 
         var result = await OrdersApi
             .ReconstructAtCreate(entity)
@@ -130,7 +130,7 @@ public sealed class ReconstructWithItemsTests
     public async Task ReconstructAtPlaceOrder_PreservesVersionFromSnapshot()
     {
         var (sp, repo) = BuildServices();
-        var entity = MakeEntity(OrderStatus.Placed, new OrderItemRow(OrderItemId.New(), "SKU", 1, new Money(10m, "USD")));
+        var entity = MakeEntity(OrderStatus.Placed, new OrderItemRow(OrderItemId.New(), "SKU", 1, Money.Create(10m, "USD").Value));
         entity.Version = 17;
 
         var result = await OrdersApi
@@ -151,7 +151,7 @@ public sealed class ReconstructWithItemsTests
         var sharedId = OrderItemId.From(System.Guid.NewGuid());
         var entity = MakeEntity(
             OrderStatus.Draft,
-            new OrderItemRow(sharedId, "SKU-Z", 9, new Money(99m, "USD")));
+            new OrderItemRow(sharedId, "SKU-Z", 9, Money.Create(99m, "USD").Value));
 
         await OrdersApi
             .ReconstructAtCreate(entity)
@@ -175,8 +175,8 @@ public sealed class ReconstructWithItemsTests
         var aId = OrderItemId.From(System.Guid.NewGuid());
         var bId = OrderItemId.From(System.Guid.NewGuid());
 
-        var entityA = MakeEntity(OrderStatus.Placed, new OrderItemRow(aId, "SKU-A", 1, new Money(10m, "USD")));
-        var entityB = MakeEntity(OrderStatus.Placed, new OrderItemRow(bId, "SKU-B", 2, new Money(20m, "USD")));
+        var entityA = MakeEntity(OrderStatus.Placed, new OrderItemRow(aId, "SKU-A", 1, Money.Create(10m, "USD").Value));
+        var entityB = MakeEntity(OrderStatus.Placed, new OrderItemRow(bId, "SKU-B", 2, Money.Create(20m, "USD").Value));
 
         await OrdersApi.ReconstructAtPlaceOrder(entityA).UpdateOrderInventory().ExecuteAsync(sp);
         await OrdersApi.ReconstructAtPlaceOrder(entityB).UpdateOrderInventory().ExecuteAsync(sp);
@@ -197,7 +197,7 @@ public sealed class ReconstructWithItemsTests
         // the items collection is rehydrated before the next aggregate method runs and rejects.
         var (sp, repo) = BuildServices();
 
-        var item = new OrderItemRow(OrderItemId.New(), "SKU-Q", 3, new Money(30m, "USD"));
+        var item = new OrderItemRow(OrderItemId.New(), "SKU-Q", 3, Money.Create(30m, "USD").Value);
         var entity = MakeEntity(OrderStatus.Draft, item);  // mismatch: Draft on a Placed-phase entry
 
         var result = await OrdersApi

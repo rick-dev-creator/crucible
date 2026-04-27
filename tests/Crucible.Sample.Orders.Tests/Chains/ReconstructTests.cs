@@ -60,7 +60,7 @@ public sealed class ReconstructTests
         {
             Id = OrderId.From(System.Guid.NewGuid()),
             CustomerId = "C-100",
-            Total = new Money(250m, "USD"),
+            Total = Money.Create(250m, "USD").Value,
             Status = OrderStatus.Placed,
             Carrier = "UPS",
             Version = 5,
@@ -85,7 +85,7 @@ public sealed class ReconstructTests
         {
             Id = OrderId.From(System.Guid.NewGuid()),
             CustomerId = "C-200",
-            Total = new Money(50m, "EUR"),
+            Total = Money.Create(50m, "EUR").Value,
             Status = OrderStatus.Draft,
             Version = 1,
         };
@@ -111,7 +111,7 @@ public sealed class ReconstructTests
         {
             Id = OrderId.From(System.Guid.NewGuid()),
             CustomerId = "C-300",
-            Total = new Money(10m, "USD"),
+            Total = Money.Create(10m, "USD").Value,
             Status = OrderStatus.Draft,  // intentionally inconsistent with phase
             Version = 1,
         };

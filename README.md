@@ -74,6 +74,38 @@ public interface IError
 
 The library forces this contract on `Result<T>.Errors`, `ChainResult<T>.Errors`, and all step/handler signatures. The domain identifies errors; presentation layers map `ErrorCode` to localized messages. Custom error types are allowed — implement `IError` directly or extend the built-in `Error` record. Built-in errors (`ValidationError`, `BusinessRuleError`, `ConflictError`, `NotFoundError`, `InfrastructureError`) cover the common cases.
 
+## Value Objects (EF Core friendly)
+
+Value objects are constructed through a generator-emitted `Create` factory that returns `Result<TVO>`:
+
+```csharp
+[ValueObject]
+public sealed partial record Money : ValueObject
+{
+    public decimal Amount { get; init; }
+    public string Currency { get; init; } = "";
+
+    private Money() { }   // for hydration + EF Core materialization
+
+    static partial Result __ValidateConstruction(decimal amount, string currency)
+    {
+        // ... return errors as IReadOnlyList<IError>
+    }
+}
+
+// Usage: every construction goes through Create
+var moneyResult = Money.Create(100m, "USD");
+return moneyResult.Match(
+    money => /* use money */,
+    errors => /* surface errors */);
+```
+
+The shape — `private Money()` parameterless ctor + `init` properties — is exactly what EF Core 8+ needs for owned-type materialization. No public constructor is allowed (CRC402); domain validation is forced through `Create`. EF Core uses the private ctor + init properties via reflection for owned types, completely independent of the validation factory.
+
+```csharp
+modelBuilder.Entity<Order>().OwnsOne(o => o.Total);   // EF maps Money via private ctor + init properties
+```
+
 ## Diagnostics
 
 | Code | Severity | Meaning |
@@ -89,6 +121,17 @@ The library forces this contract on `Result<T>.Errors`, `ChainResult<T>.Errors`,
 | CRC010 | Error | Multiple handler implementations match the same step |
 | CRC100 | Info | Step has no handler — runs as domain-only |
 | CRC200 | Warning | `[Pre<T>]` / `[Post<T>]` target does not implement the expected interface |
+| CRC300 | Error | `[Entity]` is not `partial` |
+| CRC301 | Error | `[Entity]` does not derive from `Entity<TId>` |
+| CRC302 | Error | `[Entity]` must have a parameterless constructor |
+| CRC303 | Error | No backing field found for entity collection |
+| CRC304 | Error | Multiple candidate backing fields for entity collection |
+| CRC305 | Error | `[Entity]` must not have public constructors |
+| CRC400 | Error | `[ValueObject]` must be `sealed partial record` |
+| CRC401 | Error | `[ValueObject]` must derive from `ValueObject` base record |
+| CRC402 | Error | `[ValueObject]` must not have public constructors |
+| CRC403 | Error | `[ValueObject]` must declare a private parameterless constructor |
+| CRC404 | Error | `[ValueObject]` properties must be `init`-only |
 
 ## Out of scope (v1.0)
 

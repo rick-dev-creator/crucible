@@ -23,3 +23,8 @@ CRC303 | Crucible | Error | No backing field found for entity collection
 CRC304 | Crucible | Error | Multiple candidate backing fields for entity collection
 CRC011 | Crucible | Error | Aggregate must not have public constructors
 CRC305 | Crucible | Error | Entity must not have public constructors
+CRC400 | Crucible | Error | ValueObject must be a sealed partial record
+CRC401 | Crucible | Error | ValueObject must derive from ValueObject base record
+CRC402 | Crucible | Error | ValueObject must not have public constructors
+CRC403 | Crucible | Error | ValueObject must have a private parameterless constructor
+CRC404 | Crucible | Error | ValueObject properties must be init-only

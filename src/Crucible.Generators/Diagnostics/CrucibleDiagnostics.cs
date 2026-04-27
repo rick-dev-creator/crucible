@@ -96,4 +96,29 @@ internal static class CrucibleDiagnostics
         "CRC305", "Entity must not have public constructors",
         "Entity '{0}' must not have public constructors; entities are constructed by their aggregate or rehydrated via {0}.RehydrateFrom. Use private or internal visibility.",
         Category, DiagnosticSeverity.Error, true, helpLinkUri: DocBase + "CRC305");
+
+    public static readonly DiagnosticDescriptor ValueObjectMustBeSealedPartialRecord = new(
+        "CRC400", "ValueObject must be a sealed partial record",
+        "ValueObject '{0}' must be declared as 'sealed partial record'",
+        Category, DiagnosticSeverity.Error, true, helpLinkUri: DocBase + "CRC400");
+
+    public static readonly DiagnosticDescriptor ValueObjectMustDeriveFromBase = new(
+        "CRC401", "ValueObject must derive from ValueObject base record",
+        "ValueObject '{0}' must derive from Crucible.Domain.Aggregates.ValueObject",
+        Category, DiagnosticSeverity.Error, true, helpLinkUri: DocBase + "CRC401");
+
+    public static readonly DiagnosticDescriptor ValueObjectCtorMustNotBePublic = new(
+        "CRC402", "ValueObject must not have public constructors",
+        "ValueObject '{0}' must not have public constructors; use the generated 'Create' factory. Construction goes through Result<{0}>.Create(...).",
+        Category, DiagnosticSeverity.Error, true, helpLinkUri: DocBase + "CRC402");
+
+    public static readonly DiagnosticDescriptor ValueObjectMustHavePrivateParameterlessCtor = new(
+        "CRC403", "ValueObject must have a private parameterless constructor",
+        "ValueObject '{0}' must declare a 'private {0}() {{ }}' constructor — required for the generated factory and for EF Core materialization of owned types",
+        Category, DiagnosticSeverity.Error, true, helpLinkUri: DocBase + "CRC403");
+
+    public static readonly DiagnosticDescriptor ValueObjectPropertiesMustBeInit = new(
+        "CRC404", "ValueObject properties must be init-only",
+        "ValueObject '{0}' property '{1}' must use 'init' setter (not 'set' or no setter at all)",
+        Category, DiagnosticSeverity.Error, true, helpLinkUri: DocBase + "CRC404");
 }

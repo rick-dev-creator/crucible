@@ -30,9 +30,12 @@ public partial class Order : AggregateRoot<OrderId>
         if (dto.Amount <= 0)
             return new ValidationError("ORDER_AMOUNT_POSITIVE", "Amount must be positive", nameof(dto.Amount));
 
+        var totalResult = Money.Create(dto.Amount, dto.Currency);
+        if (totalResult.IsFailure) return Result<OrderCreated>.Failure(totalResult.Errors);
+
         Id = OrderId.New();
         CustomerId = dto.CustomerId;
-        Total = new Money(dto.Amount, dto.Currency);
+        Total = totalResult.Value;
         Status = OrderStatus.Draft;
 
         var evt = new OrderCreated(Id, CustomerId, Total);
