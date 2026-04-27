@@ -180,6 +180,44 @@ public partial class BadEntity : Crucible.Domain.Aggregates.Entity<System.Guid>
         driver.GetRunResult().Diagnostics.Should().Contain(d => d.Id == "CRC305");
     }
 
+    [Fact]
+    public System.Threading.Tasks.Task GeneratesBranchingApprovalWorkflow()
+    {
+        var driver = RunGenerator(ApprovalWorkflowInput.Source);
+        return Verifier.Verify(driver).UseDirectory("Snapshots").UseMethodName("GeneratesBranchingApprovalWorkflow");
+    }
+
+    [Fact]
+    public void EmitsCRC012_WhenAllowedAfterReferencesUnknownStep()
+    {
+        var src = ApprovalWorkflowInput.Source.Replace(
+            "AllowedAfter = new[] { nameof(Approve) }",
+            "AllowedAfter = new[] { \"DoesNotExist\" }");
+        var driver = RunGenerator(src);
+        driver.GetRunResult().Diagnostics.Should().Contain(d => d.Id == "CRC012");
+    }
+
+    [Fact]
+    public void EmitsCRC014_WhenEntryStepHasAllowedAfter()
+    {
+        var src = ApprovalWorkflowInput.Source.Replace(
+            "[Step(Order = 1, Entry = true)]",
+            "[Step(Order = 1, Entry = true, AllowedAfter = new[] { \"Approve\" })]");
+        var driver = RunGenerator(src);
+        driver.GetRunResult().Diagnostics.Should().Contain(d => d.Id == "CRC014");
+    }
+
+    [Fact]
+    public void EmitsCRC013_WhenStepGraphHasCycle()
+    {
+        // Make Approve depend on Place AND Place depend on Approve — cycle
+        var src = ApprovalWorkflowInput.Source.Replace(
+            "[Step(Order = 2, AllowedAfter = new[] { nameof(Create) })]\n    public Result<OrderApproved> Approve",
+            "[Step(Order = 2, AllowedAfter = new[] { nameof(Place) })]\n    public Result<OrderApproved> Approve");
+        var driver = RunGenerator(src);
+        driver.GetRunResult().Diagnostics.Should().Contain(d => d.Id == "CRC013");
+    }
+
     private static CSharpGeneratorDriver RunGenerator(string source)
     {
         var parseOptions = new CSharpParseOptions(LanguageVersion.Preview);

@@ -41,6 +41,17 @@ internal static class AggregateAnalyzer
             int order = (int)(attr.NamedArguments.FirstOrDefault(n => n.Key == "Order").Value.Value ?? 0);
             bool entry = (bool)(attr.NamedArguments.FirstOrDefault(n => n.Key == "Entry").Value.Value ?? false);
 
+            // Read AllowedAfter (string[])
+            IReadOnlyList<string>? allowedAfter = null;
+            var allowedAfterArg = attr.NamedArguments.FirstOrDefault(n => n.Key == "AllowedAfter");
+            if (!allowedAfterArg.Value.IsNull && allowedAfterArg.Value.Values.Length > 0)
+            {
+                allowedAfter = allowedAfterArg.Value.Values
+                    .Select(v => (string)(v.Value ?? ""))
+                    .Where(s => !string.IsNullOrEmpty(s))
+                    .ToArray();
+            }
+
             ValidateReturnType(method, syntax, className, diagnostics, out var outputType, out var returnsResultWithoutValue);
             ValidateAsync(method, syntax, className, diagnostics);
 
@@ -54,10 +65,10 @@ internal static class AggregateAnalyzer
                 method.Name, order, entry,
                 outputType, returnsResultWithoutValue,
                 parameters, pres, posts,
-                HandlerTypeName: null));
+                HandlerTypeName: null,
+                AllowedAfter: allowedAfter));
         }
 
-        ValidateStepOrders(steps, syntax, className, diagnostics);
         ValidateNoPublicConstructors(classSymbol, syntax, className, diagnostics);
 
         var entryCount = steps.Count(s => s.IsEntry);
@@ -65,6 +76,17 @@ internal static class AggregateAnalyzer
             diagnostics.Add(Diagnostic.Create(CrucibleDiagnostics.MissingEntryStep, syntax.Identifier.GetLocation(), className));
         else if (entryCount > 1)
             diagnostics.Add(Diagnostic.Create(CrucibleDiagnostics.MultipleEntrySteps, syntax.Identifier.GetLocation(), className));
+
+        // Detect branching mode: any non-entry step explicitly declared AllowedAfter
+        var branchingMode = steps.Any(s => !s.IsEntry && s.AllowedAfter is { Count: > 0 });
+
+        ValidateAllowedAfterGraph(steps, syntax, className, branchingMode, diagnostics);
+
+        // Skip CRC003/CRC004 in branching mode — duplicate Order and gaps are allowed there
+        if (!branchingMode)
+        {
+            ValidateStepOrders(steps, syntax, className, diagnostics);
+        }
 
         if (diagnostics.Any(d => d.Severity == DiagnosticSeverity.Error))
             return new AnalysisResult(null, diagnostics);
@@ -80,9 +102,187 @@ internal static class AggregateAnalyzer
         var (children, childDiagnostics) = ExtractEntityChildren(classSymbol, syntax);
         diagnostics.AddRange(childDiagnostics);
 
+        // Normalize: every non-entry step ends up with a non-empty AllowedAfter
+        // (in linear mode, infer; in branching mode, the dev provided it)
+        var normalizedSteps = NormalizeAllowedAfter(sortedSteps, branchingMode);
+
         return new AnalysisResult(
-            new AggregateModel(ns, className, entryName, idType ?? "global::System.Guid", sortedSteps, properties, children),
+            new AggregateModel(ns, className, entryName, idType ?? "global::System.Guid", normalizedSteps, properties, children),
             diagnostics);
+    }
+
+    private static IReadOnlyList<StepModel> NormalizeAllowedAfter(
+        IReadOnlyList<StepModel> steps,
+        bool branchingMode)
+    {
+        if (branchingMode) return steps;  // dev provided AllowedAfter on each non-entry step
+
+        // Linear mode: infer AllowedAfter for steps that don't have it
+        var orderToStep = steps.ToLookup(s => s.Order);
+        var result = new List<StepModel>(steps.Count);
+        foreach (var step in steps)
+        {
+            if (step.IsEntry || (step.AllowedAfter is { Count: > 0 }))
+            {
+                result.Add(step);
+                continue;
+            }
+            var prev = orderToStep[step.Order - 1].FirstOrDefault();
+            var inferred = prev is null
+                ? System.Array.Empty<string>()
+                : new[] { prev.MethodName };
+            result.Add(step with { AllowedAfter = inferred });
+        }
+        return result;
+    }
+
+    private static void ValidateAllowedAfterGraph(
+        System.Collections.Generic.List<StepModel> steps,
+        ClassDeclarationSyntax syntax,
+        string className,
+        bool branchingMode,
+        System.Collections.Generic.List<Diagnostic> diagnostics)
+    {
+        var stepNames = new System.Collections.Generic.HashSet<string>(steps.Select(s => s.MethodName));
+
+        foreach (var step in steps)
+        {
+            // Entry step must not have AllowedAfter
+            if (step.IsEntry && step.AllowedAfter is { Count: > 0 })
+            {
+                diagnostics.Add(Diagnostic.Create(
+                    CrucibleDiagnostics.EntryStepHasAllowedAfter,
+                    syntax.Identifier.GetLocation(),
+                    className, step.MethodName));
+            }
+
+            // AllowedAfter references must exist
+            if (step.AllowedAfter is { } allowed)
+            {
+                foreach (var pred in allowed)
+                {
+                    if (!stepNames.Contains(pred))
+                    {
+                        diagnostics.Add(Diagnostic.Create(
+                            CrucibleDiagnostics.AllowedAfterUnknownStep,
+                            syntax.Identifier.GetLocation(),
+                            className, step.MethodName, pred));
+                    }
+                }
+            }
+
+            // In branching mode, every non-entry step must have AllowedAfter
+            if (branchingMode && !step.IsEntry && (step.AllowedAfter is null || step.AllowedAfter.Count == 0))
+            {
+                diagnostics.Add(Diagnostic.Create(
+                    CrucibleDiagnostics.StepHasNoPredecessor,
+                    syntax.Identifier.GetLocation(),
+                    className, step.MethodName));
+            }
+        }
+
+        // Cycle detection on the graph defined by AllowedAfter (or implicit linear if not branching)
+        var graph = BuildGraph(steps, branchingMode);
+        var cycle = FindCycle(graph);
+        if (cycle is not null)
+        {
+            diagnostics.Add(Diagnostic.Create(
+                CrucibleDiagnostics.StepGraphHasCycle,
+                syntax.Identifier.GetLocation(),
+                className, string.Join(" → ", cycle)));
+        }
+    }
+
+    private static System.Collections.Generic.Dictionary<string, System.Collections.Generic.List<string>> BuildGraph(
+        System.Collections.Generic.List<StepModel> steps,
+        bool branchingMode)
+    {
+        // Edge: predecessor → step (i.e., from each predecessor we can reach this step)
+        var graph = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.List<string>>();
+        foreach (var step in steps) graph[step.MethodName] = new System.Collections.Generic.List<string>();
+
+        var orderToStep = steps.ToLookup(s => s.Order);
+
+        foreach (var step in steps)
+        {
+            if (step.IsEntry) continue;
+
+            System.Collections.Generic.IEnumerable<string> predecessors;
+            if (step.AllowedAfter is { Count: > 0 })
+            {
+                predecessors = step.AllowedAfter;
+            }
+            else if (!branchingMode)
+            {
+                // Linear inference: predecessor = step with Order = current.Order - 1
+                var prev = orderToStep[step.Order - 1].FirstOrDefault();
+                predecessors = prev is null ? System.Linq.Enumerable.Empty<string>() : new[] { prev.MethodName };
+            }
+            else
+            {
+                predecessors = System.Linq.Enumerable.Empty<string>();
+            }
+
+            foreach (var pred in predecessors)
+            {
+                if (graph.TryGetValue(pred, out var list))
+                {
+                    list.Add(step.MethodName);
+                }
+            }
+        }
+
+        return graph;
+    }
+
+    private static System.Collections.Generic.IReadOnlyList<string>? FindCycle(
+        System.Collections.Generic.Dictionary<string, System.Collections.Generic.List<string>> graph)
+    {
+        var visited = new System.Collections.Generic.HashSet<string>();
+        var stack = new System.Collections.Generic.HashSet<string>();
+        var path = new System.Collections.Generic.List<string>();
+
+        foreach (var node in graph.Keys)
+        {
+            if (DetectCycleDfs(node, graph, visited, stack, path, out var cycle))
+                return cycle;
+        }
+        return null;
+    }
+
+    private static bool DetectCycleDfs(
+        string node,
+        System.Collections.Generic.Dictionary<string, System.Collections.Generic.List<string>> graph,
+        System.Collections.Generic.HashSet<string> visited,
+        System.Collections.Generic.HashSet<string> stack,
+        System.Collections.Generic.List<string> path,
+        out System.Collections.Generic.IReadOnlyList<string>? cycle)
+    {
+        cycle = null;
+        if (stack.Contains(node))
+        {
+            var startIdx = path.IndexOf(node);
+            cycle = path.Skip(startIdx).Concat(new[] { node }).ToArray();
+            return true;
+        }
+        if (visited.Contains(node)) return false;
+
+        visited.Add(node);
+        stack.Add(node);
+        path.Add(node);
+
+        if (graph.TryGetValue(node, out var neighbors))
+        {
+            foreach (var next in neighbors)
+            {
+                if (DetectCycleDfs(next, graph, visited, stack, path, out cycle))
+                    return true;
+            }
+        }
+
+        stack.Remove(node);
+        path.RemoveAt(path.Count - 1);
+        return false;
     }
 
     private static string? ResolveIdType(INamedTypeSymbol cls)

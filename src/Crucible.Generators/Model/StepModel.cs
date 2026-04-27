@@ -9,6 +9,7 @@ internal sealed record StepModel(
     System.Collections.Generic.IReadOnlyList<ParameterModel> Parameters,
     System.Collections.Generic.IReadOnlyList<string> PreProcessorTypes,
     System.Collections.Generic.IReadOnlyList<string> PostProcessorTypes,
-    string? HandlerTypeName);
+    string? HandlerTypeName,
+    System.Collections.Generic.IReadOnlyList<string>? AllowedAfter);
 
 internal sealed record ParameterModel(string Name, string TypeName);

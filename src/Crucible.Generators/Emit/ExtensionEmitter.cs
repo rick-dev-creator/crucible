@@ -11,18 +11,23 @@ internal static class ExtensionEmitter
         cb.Line($"public static class {m.ClassName}ChainExtensions");
         using (cb.Block())
         {
-            for (int i = 0; i < m.Steps.Count; i++)
+            // For each step, emit an extension block on its stage type containing methods
+            // of all OTHER steps whose AllowedAfter includes this step's name.
+            foreach (var step in m.Steps)
             {
-                var step = m.Steps[i];
                 var stateType = step.ReturnsResultWithoutValue ? "global::Crucible.Chains.Steps.Unit" : step.OutputTypeName!;
                 var stageType = $"global::Crucible.Chains.Stages.IChainStage<global::{aggFqn}, {m.IdTypeName}, {stateType}>";
+
+                // Find all steps reachable from this step (i.e., steps whose AllowedAfter contains step.MethodName)
+                var nextSteps = m.Steps
+                    .Where(s => !s.IsEntry && s.AllowedAfter is { } aa && aa.Contains(step.MethodName))
+                    .ToArray();
 
                 cb.Line($"extension({stageType} stage)");
                 using (cb.Block())
                 {
-                    if (i + 1 < m.Steps.Count)
+                    foreach (var next in nextSteps)
                     {
-                        var next = m.Steps[i + 1];
                         var nextState = next.ReturnsResultWithoutValue ? "global::Crucible.Chains.Steps.Unit" : next.OutputTypeName!;
                         var nextStageType = $"global::Crucible.Chains.Stages.IChainStage<global::{aggFqn}, {m.IdTypeName}, {nextState}>";
                         var paramsList = string.Join(", ", System.Linq.Enumerable.Select(next.Parameters, p => $"{p.TypeName} {p.Name}"));

@@ -121,4 +121,24 @@ internal static class CrucibleDiagnostics
         "CRC404", "ValueObject properties must be init-only",
         "ValueObject '{0}' property '{1}' must use 'init' setter (not 'set' or no setter at all)",
         Category, DiagnosticSeverity.Error, true, helpLinkUri: DocBase + "CRC404");
+
+    public static readonly DiagnosticDescriptor AllowedAfterUnknownStep = new(
+        "CRC012", "AllowedAfter references an unknown step",
+        "Aggregate '{0}' step '{1}' has AllowedAfter = '{2}' which does not match any [Step] method on the aggregate",
+        Category, DiagnosticSeverity.Error, true, helpLinkUri: DocBase + "CRC012");
+
+    public static readonly DiagnosticDescriptor StepGraphHasCycle = new(
+        "CRC013", "Step graph contains a cycle",
+        "Aggregate '{0}' has a cycle in its step graph: {1}. The chain is a DAG; revisiting a step within one chain is not supported.",
+        Category, DiagnosticSeverity.Error, true, helpLinkUri: DocBase + "CRC013");
+
+    public static readonly DiagnosticDescriptor EntryStepHasAllowedAfter = new(
+        "CRC014", "Entry step must not declare AllowedAfter",
+        "Aggregate '{0}' entry step '{1}' declares AllowedAfter, but the entry step has no predecessor",
+        Category, DiagnosticSeverity.Error, true, helpLinkUri: DocBase + "CRC014");
+
+    public static readonly DiagnosticDescriptor StepHasNoPredecessor = new(
+        "CRC015", "Non-entry step has no resolvable predecessor",
+        "Aggregate '{0}' step '{1}' is not the entry step and has no AllowedAfter; in branching mode every non-entry step must declare AllowedAfter",
+        Category, DiagnosticSeverity.Error, true, helpLinkUri: DocBase + "CRC015");
 }

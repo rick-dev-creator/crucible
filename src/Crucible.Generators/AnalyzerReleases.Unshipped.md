@@ -28,3 +28,7 @@ CRC401 | Crucible | Error | ValueObject must derive from ValueObject base record
 CRC402 | Crucible | Error | ValueObject must not have public constructors
 CRC403 | Crucible | Error | ValueObject must have a private parameterless constructor
 CRC404 | Crucible | Error | ValueObject properties must be init-only
+CRC012 | Crucible | Error | AllowedAfter references an unknown step
+CRC013 | Crucible | Error | Step graph contains a cycle
+CRC014 | Crucible | Error | Entry step must not declare AllowedAfter
+CRC015 | Crucible | Error | Non-entry step has no resolvable predecessor
