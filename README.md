@@ -547,7 +547,21 @@ EF reflects on the private ctor and init setters; Crucible's `Create`/`Reconstru
 
 This is built on close to **two decades of C# work** and a long list of enterprise applications — CRMs, billing systems, line-of-business apps. The technique itself isn't new for me; I've used variations on internal projects for years. What's new is materializing it as an open-source library so other teams can adopt the parts they want.
 
-The trigger for publishing was a CRM where, given enough rope, an LLM eventually fragmented the domain into a maze of services, validators, and partial implementations of the same business rule. Documentation didn't help. Code review caught some; the rest shipped and bit us months later. The realization: **structural enforcement at compile time is the only durable defense**.
+### The LLM amplifier
+
+After using LLMs for code daily, a pattern became impossible to ignore: **LLMs amplify the developer using them, in both directions**. A senior who knows what to ask for and reviews carefully gets faster and more consistent output. A junior who treats LLM output as authoritative ships subtly broken code at five times the speed.
+
+In practice on enterprise codebases, the negative amplification has been **more visible than the positive**. LLMs reliably:
+
+- introduce patterns that weren't asked for and don't fit the project,
+- ignore explicit rules in `CLAUDE.md` / `.cursorrules` / system prompts after a handful of turns,
+- invent abstractions to "improve" code that didn't need them,
+- silently change conventions across files in ways code review struggles to catch,
+- and output with a confidence level that doesn't match their actual correctness.
+
+The end result is an agent that behaves like a junior with very fast hands and **dangerous self-assurance** — the kind an inexperienced developer reads as authority and accepts blindly. A team with strong reviewers can absorb that drift. A team without strong reviewers ships it.
+
+That is the second motivation for this framework. Documentation, system prompts, code review, and lint rules all assume someone reads and follows them. **None of those assumptions hold reliably with LLMs in the loop.** What does hold is the compiler. Code that doesn't compile cannot be merged regardless of who (or what) wrote it. Crucible's bet is that the cheapest place to enforce DDD discipline in an LLM-collaborative team is the type system, not the review process.
 
 ### Humility
 
