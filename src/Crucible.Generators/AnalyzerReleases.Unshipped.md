@@ -14,7 +14,7 @@ CRC006 | Crucible | Error | Aggregate must derive from AggregateRoot<TId>
 CRC007 | Crucible | Error | Step method has invalid return type
 CRC008 | Crucible | Error | Step method is async or returns Task
 CRC010 | Crucible | Error | Ambiguous handler
-CRC100 | Crucible | Info | Step has no handler — runs as domain-only
+CRC100 | Crucible | Error | Step has no handler
 CRC200 | Crucible | Warning | [Pre<T>] / [Post<T>] target does not implement the expected interface
 CRC300 | Crucible | Error | Entity is not partial
 CRC301 | Crucible | Error | Entity must derive from Entity<TId>

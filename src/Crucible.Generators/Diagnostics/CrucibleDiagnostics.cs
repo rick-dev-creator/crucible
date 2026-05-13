@@ -53,9 +53,9 @@ internal static class CrucibleDiagnostics
         Category, DiagnosticSeverity.Error, true, helpLinkUri: DocBase + "CRC010");
 
     public static readonly DiagnosticDescriptor StepHasNoHandler = new(
-        "CRC100", "Step has no handler — runs as domain-only",
-        "Step '{0}.{1}' has no IStepHandler implementation; it will run as domain-only",
-        Category, DiagnosticSeverity.Info, true, helpLinkUri: DocBase + "CRC100");
+        "CRC100", "Step has no handler",
+        "Step '{0}.{1}' has no IStepHandler implementation; every [Step] returning Result<T> must have a registered handler",
+        Category, DiagnosticSeverity.Error, true, helpLinkUri: DocBase + "CRC100");
 
     public static readonly DiagnosticDescriptor InvalidPreOrPostType = new(
         "CRC200", "[Pre<T>] / [Post<T>] target does not implement the expected interface",

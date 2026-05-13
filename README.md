@@ -515,7 +515,7 @@ EF reflects on the private ctor and init setters; Crucible's `Create`/`Reconstru
 
 | Code | Severity | Meaning |
 |---|---|---|
-| **CRC100** | Info | Step has no handler — runs as domain-only |
+| **CRC100** | Error | Step has no handler — every `[Step]` returning `Result<T>` must have a registered `IStepHandler` |
 | **CRC200** | Warning | `[Pre<T>]` / `[Post<T>]` target does not implement the expected interface |
 
 ### `[Entity]` (CRC300–CRC305)

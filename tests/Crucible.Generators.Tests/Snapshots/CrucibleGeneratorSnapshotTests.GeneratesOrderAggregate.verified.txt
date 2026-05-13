@@ -8,16 +8,15 @@ public partial class Order : AggregateRoot<OrderId>
 {
 */
  : (20,21)-(20,26),
-      Message: Step 'Order.Create' has no IStepHandler implementation; it will run as domain-only,
-      Severity: Info,
-      WarningLevel: 1,
+      Message: Step 'Order.Create' has no IStepHandler implementation; every [Step] returning Result<T> must have a registered handler,
+      Severity: Error,
       Descriptor: {
         Id: CRC100,
-        Title: Step has no handler — runs as domain-only,
+        Title: Step has no handler,
         HelpLink: https://docs.crucible.dev/diagnostics/CRC100,
-        MessageFormat: Step '{0}.{1}' has no IStepHandler implementation; it will run as domain-only,
+        MessageFormat: Step '{0}.{1}' has no IStepHandler implementation; every [Step] returning Result<T> must have a registered handler,
         Category: Crucible,
-        DefaultSeverity: Info,
+        DefaultSeverity: Error,
         IsEnabledByDefault: true
       }
     },
@@ -29,16 +28,15 @@ public partial class Order : AggregateRoot<OrderId>
 {
 */
  : (20,21)-(20,26),
-      Message: Step 'Order.PlaceOrder' has no IStepHandler implementation; it will run as domain-only,
-      Severity: Info,
-      WarningLevel: 1,
+      Message: Step 'Order.PlaceOrder' has no IStepHandler implementation; every [Step] returning Result<T> must have a registered handler,
+      Severity: Error,
       Descriptor: {
         Id: CRC100,
-        Title: Step has no handler — runs as domain-only,
+        Title: Step has no handler,
         HelpLink: https://docs.crucible.dev/diagnostics/CRC100,
-        MessageFormat: Step '{0}.{1}' has no IStepHandler implementation; it will run as domain-only,
+        MessageFormat: Step '{0}.{1}' has no IStepHandler implementation; every [Step] returning Result<T> must have a registered handler,
         Category: Crucible,
-        DefaultSeverity: Info,
+        DefaultSeverity: Error,
         IsEnabledByDefault: true
       }
     }

@@ -105,9 +105,11 @@ public sealed class CrucibleGeneratorSnapshotTests
     [Fact]
     public void EmitsCRC100_WhenStepHasNoHandler()
     {
-        // Base fixture has no handlers in scope; CRC100 should fire for both steps.
+        // Base fixture has no handlers in scope; CRC100 should fire for both steps as Error.
         var driver = RunGenerator(OrderAggregateInput.Source);
-        driver.GetRunResult().Diagnostics.Should().Contain(d => d.Id == "CRC100");
+        var diagnostics = driver.GetRunResult().Diagnostics;
+        diagnostics.Should().Contain(d => d.Id == "CRC100");
+        diagnostics.Where(d => d.Id == "CRC100").Should().OnlyContain(d => d.Severity == Microsoft.CodeAnalysis.DiagnosticSeverity.Error);
     }
 
     [Fact]
