@@ -7,12 +7,13 @@
     <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
     <AnalysisLevel>latest</AnalysisLevel>
     <NeutralLanguage>en-US</NeutralLanguage>
-    <Authors>rick-dev</Authors>
-    <Company>rick-lab</Company>
-    <Copyright>Copyright (c) 2026 rick-dev</Copyright>
+    <Version>2.2.0</Version>
+    <Authors>rick-dev-creator</Authors>
+    <Company>rick-dev-creator</Company>
+    <Copyright>Copyright (c) 2026 rick-dev-creator</Copyright>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
-    <PackageProjectUrl>https://git.rick-lab.dev/rick-dev/crucible</PackageProjectUrl>
-    <RepositoryUrl>https://git.rick-lab.dev/rick-dev/crucible</RepositoryUrl>
+    <PackageProjectUrl>https://github.com/rick-dev-creator/crucible</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/rick-dev-creator/crucible</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <IncludeSymbols>true</IncludeSymbols>
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>
@@ -21,4 +22,12 @@
   <PropertyGroup Condition="'$(IsPackable)' == 'true'">
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
   </PropertyGroup>
+
+  <PropertyGroup>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="$(MSBuildThisFileDirectory)README.md" Pack="true" PackagePath="\" Visible="false" />
+  </ItemGroup>
 </Project>
