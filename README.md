@@ -1,6 +1,6 @@
 # Crucible
 
-> Opinionated DDD library for **.NET 10 / C# 14**. Compile-time enforcement of aggregates, entities, value objects, and chain composition — so LLMs and junior developers cannot fragment the domain.
+> Opinionated DDD library for **.NET 10 / C# 14**. Compile-time enforcement of aggregates, entities, value objects, and chain composition — so LLMs cannot fragment the domain.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Version](https://img.shields.io/badge/version-2.2.0-blue.svg)](https://github.com/rick-dev-creator/crucible/releases)
